@@ -174,7 +174,9 @@ def Main(argv):
         print 
         print 'If a directory is given, search for subtitles for all movies on it (non-recursively).'
         return 2
-    
+
+    input_filenames = list(FindMovieFiles(argv[1:]))
+    language = 'eng' 
     
     def PrintStatus(text, status):
         spaces = 70 - len(text)
@@ -182,13 +184,12 @@ def Main(argv):
             spaces = 2
         print '%s%s%s' % (text, ' ' * spaces, status)
         
-    input_filenames = list(FindMovieFiles(argv[1:]))
+    
     
     if not input_filenames:
         print 'No files to search subtitles for. Aborting.'
         return 1
     
-    language = 'eng'
     
     print 'Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames)
     print
