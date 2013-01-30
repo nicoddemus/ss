@@ -22,7 +22,7 @@ Usage
 Just pass the name of the video file or a directory, in which case it will
 search for all video files in that directory.
 
-> python ss.py <directory or movie file>
+> python ss.py [directory or movie file]
 >
 
 Currently it is searching for subtitles in English only; until this is fixed, 
