@@ -10,6 +10,7 @@ import shutil
 import glob
 import Queue
 import threading
+import time
 
 
 DEBUG = False
@@ -203,7 +204,6 @@ def Main(argv):
         if subtitle_url:
             subtitle_filename = ObtainSubtitleFilename(movie_filename, language, subtitle_ext)
             matches.append((movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
-    print 
     
     if not matches:
         return 0
@@ -218,8 +218,18 @@ def Main(argv):
 # Entry
 #===================================================================================================
 if __name__ == '__main__':
-    import sys
-    Main(sys.argv)    
+    try:
+        import sys
+        Main(sys.argv)    
+    except:
+        import traceback
+        filename = __file__ + '.log'
+        log_file = file(filename, 'a+')
+        print >> log_file, 'ERROR', '=' * 80
+        print >> log_file, 'Date:', time.strftime('%c')
+        print >> log_file, 'args:', sys.argv
+        traceback.print_exc(file=log_file)
+        log_file.close()
 
 
 
