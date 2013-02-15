@@ -147,19 +147,27 @@ def DownloadSub(subtitle_url, subtitle_filename):
 #===================================================================================================
 # FindMovieFiles
 #===================================================================================================
-def FindMovieFiles(input_names):
-    extensions = ['.avi', '.mp4', '.mpg', '.mkv']
+def FindMovieFiles(input_names, recursive=False):
+    extensions = set(['.avi', '.mp4', '.mpg', '.mkv'])
+    returned = set()
     
     for input_name in input_names:
         
-        if os.path.isfile(input_name):
+        if os.path.isfile(input_name) and input_name not in returned:
             yield input_name
+            returned.add(input_name)
         else:
             names = os.listdir(input_name)
-            for ext in extensions:                
-                for name in names:
-                    if name.endswith(ext):
-                        yield os.path.join(input_name, name)
+            for name in names:
+                result = os.path.join(input_name, name)
+                if name[-4:] in extensions:
+                    if result not in returned:
+                        yield result
+                        returned.add(result)
+                
+                elif os.path.isdir(result) and recursive:
+                    for x in FindMovieFiles([result], recursive):
+                        yield x
             
 
 #===================================================================================================
