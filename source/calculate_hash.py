@@ -2,6 +2,9 @@ import struct
 import os
 
 
+#===================================================================================================
+# CalculateHashForFile
+#===================================================================================================
 def CalculateHashForFile(name): 
     '''
     Calculates the hash for the given filename.
