@@ -70,11 +70,6 @@ def FindBestSubtitleMatches(movie_filenames, language):
     
         possibilities = [] 
         for search_result in search_results:
-            if DEBUG:
-                print '-' * 80
-                keys = ['SeriesSeason', 'MovieName', 'LanguageName', 'SubFileName', 'SubDownloadLink', 'SubFormat', 'MovieReleaseName']
-                for key in keys:
-                    print key + ':', search_result[key]
             possibilities.append(search_result['SubFileName']) # this does not include the file extension
             
         closest_matches = difflib.get_close_matches(os.path.basename(movie_filename), possibilities)
@@ -175,12 +170,12 @@ def FindMovieFiles(input_names, recursive=False):
 #===================================================================================================
 def Main(argv):
     if len(argv) < 2:
-        print 'ERROR: insufficient arguments'
-        print 
-        print 'Usage:'
-        print '    ss file_or_dir1 file_or_dir2 ...'
-        print 
-        print 'If a directory is given, search for subtitles for all movies on it (non-recursively).'
+        print('ERROR: insufficient arguments')
+        print() 
+        print('Usage:')
+        print('    ss file_or_dir1 file_or_dir2 ...')
+        print() 
+        print('If a directory is given, search for subtitles for all movies on it (non-recursively).')
         return 2
 
     input_filenames = list(FindMovieFiles(argv[1:]))
@@ -190,17 +185,17 @@ def Main(argv):
         spaces = 70 - len(text)
         if spaces < 2:
             spaces = 2
-        print '%s%s%s' % (text, ' ' * spaces, status)
+        print('%s%s%s' % (text, ' ' * spaces, status))
         
     
     
     if not input_filenames:
-        print 'No files to search subtitles for. Aborting.'
+        print('No files to search subtitles for. Aborting.')
         return 1
     
     
-    print 'Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames)
-    print
+    print('Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames))
+    print()
     matches = []
     for (movie_filename, subtitle_url, subtitle_ext) in sorted(FindBestSubtitleMatches(input_filenames, language=language)):
         if subtitle_url:
@@ -217,8 +212,8 @@ def Main(argv):
     if not matches:
         return 0
     
-    print 
-    print 'Downloading...'
+    print() 
+    print('Downloading...')
     for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
         DownloadSub(subtitle_url, subtitle_filename)
         PrintStatus(' - %s' % os.path.basename(subtitle_filename), 'DONE')
@@ -232,13 +227,11 @@ if __name__ == '__main__':
         Main(sys.argv)    
     except:
         import traceback
-        filename = __file__ + '.log'
-        log_file = file(filename, 'a+')
-        print >> log_file, 'ERROR', '=' * 80
-        print >> log_file, 'Date:', time.strftime('%c')
-        print >> log_file, 'args:', sys.argv
-        traceback.print_exc(file=log_file)
-        log_file.close()
+        with file(__file__ + '.log', 'a+') as log_file:
+            log_file.write('ERROR ' + ('=' * 80) + '\n') 
+            log_file.write('Date: %s' % time.strftime('%c'))
+            log_file.write('args: ' + repr(sys.argv))
+            traceback.print_exc(file=log_file)
 
 
 
