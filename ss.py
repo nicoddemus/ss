@@ -170,12 +170,12 @@ def FindMovieFiles(input_names, recursive=False):
 #===================================================================================================
 def Main(argv):
     if len(argv) < 2:
-        print('ERROR: insufficient arguments')
-        print() 
-        print('Usage:')
-        print('    ss file_or_dir1 file_or_dir2 ...')
-        print() 
-        print('If a directory is given, search for subtitles for all movies on it (non-recursively).')
+        sys.stdout.write('ERROR: insufficient arguments\n')
+        sys.stdout.write('\n') 
+        sys.stdout.write('Usage:\n')
+        sys.stdout.write('    ss file_or_dir1 file_or_dir2 ...\n')
+        sys.stdout.write('\n') 
+        sys.stdout.write('If a directory is given, search for subtitles for all movies on it (non-recursively).\n')
         return 2
 
     input_filenames = list(FindMovieFiles(argv[1:]))
@@ -185,17 +185,17 @@ def Main(argv):
         spaces = 70 - len(text)
         if spaces < 2:
             spaces = 2
-        print('%s%s%s' % (text, ' ' * spaces, status))
+        sys.stdout.write('%s%s%s\n' % (text, ' ' * spaces, status))
         
     
     
     if not input_filenames:
-        print('No files to search subtitles for. Aborting.')
+        sys.stdout.write('No files to search subtitles for. Aborting.\n')
         return 1
     
     
-    print('Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames))
-    print()
+    sys.stdout.write('Querying OpenSubtitles.org for %d file(s)...\n' % len(input_filenames))
+    sys.stdout.write('\n')
     matches = []
     for (movie_filename, subtitle_url, subtitle_ext) in sorted(FindBestSubtitleMatches(input_filenames, language=language)):
         if subtitle_url:
@@ -212,8 +212,8 @@ def Main(argv):
     if not matches:
         return 0
     
-    print() 
-    print('Downloading...')
+    sys.stdout.write('\n') 
+    sys.stdout.write('Downloading...\n')
     for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
         DownloadSub(subtitle_url, subtitle_filename)
         PrintStatus(' - %s' % os.path.basename(subtitle_filename), 'DONE')
