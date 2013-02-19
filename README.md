@@ -45,8 +45,20 @@ the language to Brazillian Portuguese and enable searching for files recursively
     ] python ss.py --config language=pob recursive=1
     language=pob
     recursive=1
+    skip=1
 
 ******
+
+The following options are available:
+
+- `language:` 3 letter code with the language to search subtitles for. Use the same code as it 
+  appears when you change search languages (as in http://www.opensubtitles.org/en/search/sublanguageid-pob).
+
+- `recursive`: if directories should be recursively searched for movies.
+
+- `skip`: if movies that already have subtitles should be skipped. If this is 0 and a movie 
+  already has subtitles, `ss` won't overwrite the current subtitle, but generate a file using
+  the language as suffix; if that also already exists, it will use an additional *"ss"* prefix. 
 
 TODO
 ----
