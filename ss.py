@@ -7,13 +7,7 @@ import gzip
 import urllib
 import tempfile
 import shutil
-import glob
-import Queue
-import threading
 import time
-
-
-DEBUG = False
 
 
 #===================================================================================================
