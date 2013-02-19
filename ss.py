@@ -2,7 +2,7 @@ from __future__ import with_statement
 import xmlrpclib
 import difflib
 import os
-from calculate_hash import CalculateHashForFile
+import calculate_hash
 import gzip
 import urllib
 import tempfile
@@ -16,7 +16,6 @@ import time
 def QueryOpenSubtitles(movie_filenames, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = xmlrpclib.Server(uri, verbose=0, allow_none=True, use_datetime=True)
-    
     login_info = server.LogIn('', '', 'en', 'OS Test User Agent')
     token = login_info['token']
     
@@ -26,7 +25,7 @@ def QueryOpenSubtitles(movie_filenames, language):
         for movie_filename in movie_filenames:
             search_queries = [
                 dict(
-                    moviehash=CalculateHashForFile(movie_filename),
+                    moviehash=calculate_hash.CalculateHashForFile(movie_filename),
                     moviebytesize=os.path.getsize(movie_filename),
                     sublanguageid=language,
                 ),
@@ -36,6 +35,7 @@ def QueryOpenSubtitles(movie_filenames, language):
             ]
             
             response = server.SearchSubtitles(token, search_queries)
+            print movie_filename, response
             search_results = response['data']
         
             if search_results:
