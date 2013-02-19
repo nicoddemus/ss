@@ -56,10 +56,9 @@ def FindBestSubtitleMatches(movie_filenames, language):
     for movie_filename in movie_filenames:
         
         search_results = all_search_results.get(movie_filename, [])
-    
         possibilities = [search_result['SubFileName'] for search_result in search_results]
         basename = os.path.splitext(os.path.basename(movie_filename))[0] 
-        closest_matches = difflib.get_close_matches(basename, possibilities)
+        closest_matches = difflib.get_close_matches(basename, possibilities, cutoff=0.2)
         if closest_matches:
             filtered = [x for x in search_results if x['SubFileName'] in closest_matches]
             filtered.sort(key=lambda x: x['SubDownloadsCnt'])
