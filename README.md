@@ -60,7 +60,6 @@ The following options are available:
   already has subtitles, `ss` won't overwrite the current subtitle, but generate a file using
   the language as suffix; if that also already exists, it will use an additional *"ss"* prefix. 
 
-TODO
-----
--   Better error handling;
-
+Continuous Integration
+----------------------
+[![Build Status](https://secure.travis-ci.org/nicoddemus/ss.png?branch=master)](http://travis-ci.org/nicoddemus/ss)
