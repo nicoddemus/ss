@@ -60,7 +60,6 @@ def FindBestSubtitleMatches(movie_filenames, language):
         possibilities = [search_result['SubFileName'] for search_result in search_results]
         basename = os.path.splitext(os.path.basename(movie_filename))[0] 
         closest_matches = difflib.get_close_matches(basename, possibilities)
-        
         if closest_matches:
             filtered = [x for x in search_results if x['SubFileName'] in closest_matches]
             filtered.sort(key=lambda x: x['SubDownloadsCnt'])
@@ -149,20 +148,36 @@ def FindMovieFiles(input_names, recursive=False):
                 elif os.path.isdir(result) and recursive:
                     for x in FindMovieFiles([result], recursive):
                         yield x
+                        
+                        
+#===================================================================================================
+# HasSubtitle
+#===================================================================================================
+def HasSubtitle(filename):
+    # list of subtitle formats obtained from opensubtitles' advanced search page.
+    formats = ['.sub', '.srt', '.ssa', '.smi', '.mpl']                        
+    basename = os.path.splitext(filename)[0]
+    for format in formats:
+        if os.path.isfile(basename + format):
+            return True
+        
+    return False
+    
+    
             
 
 #===================================================================================================
 # ChangeConfiguration
 #===================================================================================================
 def ChangeConfiguration(params, filename):
-    (language, recursive) = LoadConfiguration(filename)
-    (language, recursive) = ParseConfiguration(params, language, recursive)
+    config = LoadConfiguration(filename)
+    config.SetFromLines(params)
     
     with file(filename, 'w') as f:
-        f.write('language=%s\n' % language)
-        f.write('recursive=%s\n' % recursive)
+        for line in config.GetLines():
+            f.write(line + '\n')
         
-    return (language, recursive)
+    return config
     
         
 #===================================================================================================
@@ -176,28 +191,55 @@ def LoadConfiguration(filename):
     else:
         lines = []
                         
-    return ParseConfiguration(lines)
+    config = Configuration()
+    config.SetFromLines(lines)
+    return config
 
 
 #===================================================================================================
-# GetNameValuePair
+# Configuration
 #===================================================================================================
-def ParseConfiguration(strings, language='eng', recursive=0):
-    # default values
-    unknown = []
+class Configuration(object):
     
-    for line in strings:
-        if '=' in line:
-            name, value = [x.strip() for x in line.split('=', 1)]
-            if name == 'language':
-                language = value
-            elif name == 'recursive':
-                recursive = int(value.lower() in ('1', 'true', 'yes'))
-            else:
-                unknown.append(name)   
-                        
-    return (language, recursive)
+    def __init__(self, language='eng', recursive=False, skip=False):
+        self.language = language
+        self.recursive = recursive
+        self.skip = skip
 
+
+    def SetFromLines(self, strings):
+        
+        def ParseBool(value):
+            return int(value.lower() in ('1', 'true', 'yes'))
+        
+        for line in strings:
+            if '=' in line:
+                name, value = [x.strip() for x in line.split('=', 1)]
+                if name == 'language':
+                    self.language = value
+                elif name == 'recursive':
+                    self.recursive = ParseBool(value)
+                elif name == 'skip':
+                    self.skip = ParseBool(value) 
+                    
+                    
+    def GetLines(self):
+        return [
+            'language=%s' % self.language,
+            'recursive=%s' % self.recursive,
+            'skip=%s' % self.skip,
+        ]
+        
+        
+    def __eq__(self, other):
+        return self.language == other.language and \
+            self.recursive == other.recursive and \
+            self.skip == other.skip
+            
+            
+    def __ne__(self, other):
+        return not self == other
+    
 
 #===================================================================================================
 # Main
@@ -216,14 +258,27 @@ def Main(argv):
     
     config_filename = os.path.join(os.path.dirname(__file__), '.ss.ini')
     if options.config:
-        language, recursive = ChangeConfiguration(args, config_filename)
-        print 'language=%s' % language
-        print 'recursive=%s' % recursive
+        config = ChangeConfiguration(args, config_filename)
+        for line in config.GetLines():
+            print line
         return 0
     else:
-        language, recursive = LoadConfiguration(config_filename)
+        config = LoadConfiguration(config_filename)
 
-    input_filenames = list(FindMovieFiles(args[1:], recursive=recursive))
+    input_filenames = list(FindMovieFiles(args[1:], recursive=config.recursive))
+    if not input_filenames:
+        sys.stdout.write('No files to search subtitles for. Aborting.\n')
+        return 1
+    
+    skipped_filenames = []
+    if config.skip:
+        new_input_filenames = []
+        for input_filename in input_filenames:
+            if HasSubtitle(input_filename):
+                skipped_filenames.append(input_filename)
+            else:
+                new_input_filenames.append(input_filename)
+        input_filenames = new_input_filenames
     
     def PrintStatus(text, status):
         spaces = 70 - len(text)
@@ -231,16 +286,20 @@ def Main(argv):
             spaces = 2
         sys.stdout.write('%s%s%s\n' % (text, ' ' * spaces, status))
     
+    
+    sys.stdout.write('Language: %s\n' % config.language)
+    if config.skip and skipped_filenames:
+        print 'Skipping %d files that already have subtitles.' % len(skipped_filenames)
+    
     if not input_filenames:
-        sys.stdout.write('No files to search subtitles for. Aborting.\n')
         return 1
     
-    
-    sys.stdout.write('Language: %s\n' % language)
     sys.stdout.write('Querying OpenSubtitles.org for %d file(s)...\n' % len(input_filenames))
     sys.stdout.write('\n')
+    
+        
     matches = []
-    for (movie_filename, subtitle_url, subtitle_ext) in sorted(FindBestSubtitleMatches(input_filenames, language=language)):
+    for (movie_filename, subtitle_url, subtitle_ext) in sorted(FindBestSubtitleMatches(input_filenames, language=config.language)):
         if subtitle_url:
             status = 'OK'
         else:
@@ -249,7 +308,7 @@ def Main(argv):
         PrintStatus('- %s' % os.path.basename(movie_filename), status)
         
         if subtitle_url:
-            subtitle_filename = ObtainSubtitleFilename(movie_filename, language, subtitle_ext)
+            subtitle_filename = ObtainSubtitleFilename(movie_filename, config.language, subtitle_ext)
             matches.append((movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
     
     if not matches:

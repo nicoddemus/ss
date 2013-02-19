@@ -1,7 +1,8 @@
 from __future__ import with_statement
 import pytest
 from mock import patch, MagicMock, call
-from ss import FindMovieFiles, QueryOpenSubtitles, FindBestSubtitleMatches, ChangeConfiguration, LoadConfiguration
+from ss import FindMovieFiles, QueryOpenSubtitles, FindBestSubtitleMatches, ChangeConfiguration, LoadConfiguration,\
+    Configuration, HasSubtitle
 
     
 #===================================================================================================
@@ -24,7 +25,17 @@ def testFindMovieFiles(tmpdir):
         tmpdir.join('sub', 'video.mp4'),
         tmpdir.join('video.avi'),
         tmpdir.join('video.mpg'),
-    ] 
+    ]
+    
+    
+#==================================================================================================
+# testHasSubtitles
+#==================================================================================================
+def testHasSubtitles(tmpdir):
+    assert not HasSubtitle(str(tmpdir.join('video.avi').ensure()))
+    
+    tmpdir.join('video.srt').ensure()
+    assert HasSubtitle(str(tmpdir.join('video.avi').ensure()))
     
     
 #===================================================================================================
@@ -98,26 +109,28 @@ def testFindBestSubtitleMatches():
 #===================================================================================================
 def testChangeConfiguration(tmpdir):
     filename = str(tmpdir.join('ss.conf'))
-    assert ChangeConfiguration([], filename) == ('eng', 0)
-    assert ChangeConfiguration(['language=br'], filename) == ('br', 0)
-    assert ChangeConfiguration(['language=us', 'recursive=1'], filename) == ('us', 1)
-    assert ChangeConfiguration(['foo=bar', 'recursive=0'], filename) == ('us', 0)
+    assert ChangeConfiguration([], filename) == Configuration('eng', 0, 0)
+    assert ChangeConfiguration(['language=br'], filename) == Configuration('br', 0, 0)
+    assert ChangeConfiguration(['language=us', 'recursive=1'], filename) == Configuration('us', 1, 0)
+    assert ChangeConfiguration(['foo=bar', 'recursive=0'], filename) == Configuration('us', 0, 0)
+    assert ChangeConfiguration(['skip=yes'], filename) == Configuration('us', 0, 1)
     
     
 #===================================================================================================
 # testLoadConfiguration
 #===================================================================================================
 def testLoadConfiguration(tmpdir):
-    assert LoadConfiguration(str(tmpdir.join('ss.conf'))) == ('eng', 0)
+    assert LoadConfiguration(str(tmpdir.join('ss.conf'))) == Configuration('eng', 0, 0)
     
     f = tmpdir.join('ss.conf').open('w')
     f.write('language=br\n')
     f.write('recursive=yes\n')
+    f.write('skip=yes\n')
     f.write('foo=bar\n')
     f.write('foobar=4\n')
     f.close()
     
-    assert LoadConfiguration(str(tmpdir.join('ss.conf'))) == ('br', 1)
+    assert LoadConfiguration(str(tmpdir.join('ss.conf'))) == Configuration('br', 1, 1)
            
 #===================================================================================================
 # main    
