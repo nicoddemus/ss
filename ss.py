@@ -19,7 +19,7 @@ DEBUG = False
 #===================================================================================================
 # QueryOpenSubtitles
 #===================================================================================================
-def QueryOpenSubtitles(hash_to_movie_filename, language):
+def QueryOpenSubtitles(movie_filenames, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = xmlrpclib.Server(uri, verbose=0, allow_none=True, use_datetime=True)
     
@@ -27,22 +27,27 @@ def QueryOpenSubtitles(hash_to_movie_filename, language):
     token = login_info['token']
     
     try:
-        search_queries = []
-        for moviehash, movie_filename in hash_to_movie_filename.iteritems():
-            moviebytesize = os.path.getsize(movie_filename)
-            search_query = dict(
-                moviehash=moviehash,
-                moviebytesize=moviebytesize,
-                sublanguageid=language,
-            )
-            search_queries.append(search_query)
+        result = {}
+        
+        for movie_filename in movie_filenames:
+            search_queries = [
+                dict(
+                    moviehash=CalculateHashForFile(movie_filename),
+                    moviebytesize=os.path.getsize(movie_filename),
+                    sublanguageid=language,
+                ),
+                dict(
+                    query=os.path.basename(os.path.splitext(movie_filename)[0]),
+                )
+            ]
             
-        response = server.SearchSubtitles(token, search_queries)
-        search_results = response['data']
-        if search_results:
-            return search_results
-        else:
-            return []
+            response = server.SearchSubtitles(token, search_queries)
+            search_results = response['data']
+        
+            if search_results:
+                result[movie_filename] = search_results
+                
+        return result 
     finally:
         server.LogOut(token)
     
@@ -52,34 +57,21 @@ def QueryOpenSubtitles(hash_to_movie_filename, language):
 #===================================================================================================
 def FindBestSubtitleMatches(movie_filenames, language):
     
-    hash_to_movie_filename = dict((CalculateHashForFile(x), x) for x in movie_filenames) 
+    all_search_results = QueryOpenSubtitles(movie_filenames, language)
     
-    search_results = QueryOpenSubtitles(hash_to_movie_filename, language)
-    
-    hash_to_search_results = {}
-    for search_data in search_results:
-        hash_to_search_results.setdefault(search_data['MovieHash'], []).append(search_data)
-    
-    for hash, movie_filename in hash_to_movie_filename.iteritems():
+    for movie_filename in movie_filenames:
         
-        if hash not in hash_to_search_results:
-            yield movie_filename, None, None
-            continue
-        
-        search_results = hash_to_search_results[hash]
+        search_results = all_search_results.get(movie_filename, [])
     
-        possibilities = [] 
-        for search_result in search_results:
-            possibilities.append(search_result['SubFileName']) # this does not include the file extension
-            
-        closest_matches = difflib.get_close_matches(os.path.basename(movie_filename), possibilities)
+        possibilities = [search_result['SubFileName'] for search_result in search_results]
+        basename = os.path.splitext(os.path.basename(movie_filename))[0] 
+        closest_matches = difflib.get_close_matches(basename, possibilities)
         
         if closest_matches:
-            closest_match = closest_matches[0]
-            for search_result in search_results:
-                if search_result['SubFileName'] == closest_match:
-                    yield movie_filename, search_result['SubDownloadLink'], '.' + search_result['SubFormat']
-                    break
+            filtered = [x for x in search_results if x['SubFileName'] in closest_matches]
+            filtered.sort(key=lambda x: x['SubDownloadsCnt'])
+            search_result = filtered[0]
+            yield movie_filename, search_result['SubDownloadLink'], '.' + search_result['SubFormat']
         else:
             yield movie_filename, None, None
                 
@@ -186,8 +178,6 @@ def Main(argv):
         if spaces < 2:
             spaces = 2
         sys.stdout.write('%s%s%s\n' % (text, ' ' * spaces, status))
-        
-    
     
     if not input_filenames:
         sys.stdout.write('No files to search subtitles for. Aborting.\n')
