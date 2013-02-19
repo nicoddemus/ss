@@ -8,7 +8,7 @@ import urllib
 import tempfile
 import shutil
 import time
-
+import optparse
 
 #===================================================================================================
 # QueryOpenSubtitles
@@ -31,11 +31,11 @@ def QueryOpenSubtitles(movie_filenames, language):
                 ),
                 dict(
                     query=os.path.basename(os.path.splitext(movie_filename)[0]),
+                    sublanguageid=language,
                 )
             ]
             
             response = server.SearchSubtitles(token, search_queries)
-            print movie_filename, response
             search_results = response['data']
         
             if search_results:
@@ -152,20 +152,78 @@ def FindMovieFiles(input_names, recursive=False):
             
 
 #===================================================================================================
+# ChangeConfiguration
+#===================================================================================================
+def ChangeConfiguration(params, filename):
+    (language, recursive) = LoadConfiguration(filename)
+    (language, recursive) = ParseConfiguration(params, language, recursive)
+    
+    with file(filename, 'w') as f:
+        f.write('language=%s\n' % language)
+        f.write('recursive=%s\n' % recursive)
+        
+    return (language, recursive)
+    
+        
+#===================================================================================================
+# LoadConfiguration
+#===================================================================================================
+def LoadConfiguration(filename):
+    
+    if os.path.isfile(filename):
+        with file(filename) as f:
+            lines = f.readlines()
+    else:
+        lines = []
+                        
+    return ParseConfiguration(lines)
+
+
+#===================================================================================================
+# GetNameValuePair
+#===================================================================================================
+def ParseConfiguration(strings, language='eng', recursive=0):
+    # default values
+    unknown = []
+    
+    for line in strings:
+        if '=' in line:
+            name, value = [x.strip() for x in line.split('=', 1)]
+            if name == 'language':
+                language = value
+            elif name == 'recursive':
+                recursive = int(value.lower() in ('1', 'true', 'yes'))
+            else:
+                unknown.append(name)   
+                        
+    return (language, recursive)
+
+
+#===================================================================================================
 # Main
 #===================================================================================================
 def Main(argv):
-    if len(argv) < 2:
-        sys.stdout.write('ERROR: insufficient arguments\n')
-        sys.stdout.write('\n') 
-        sys.stdout.write('Usage:\n')
-        sys.stdout.write('    ss file_or_dir1 file_or_dir2 ...\n')
-        sys.stdout.write('\n') 
-        sys.stdout.write('If a directory is given, search for subtitles for all movies on it (non-recursively).\n')
+    parser = optparse.OptionParser(
+        usage='Usage: %prog [options] <file or dir> <file or dir>...',
+        description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).',
+        epilog='If a directory is given, search for subtitles for all movies on it (non-recursively).',
+    )
+    parser.add_option('-c', '--config', help='configuration mode.', action='store_true')
+    options, args = parser.parse_args(args=argv)
+    if not options.config and len(args) < 2:
+        parser.print_help()
         return 2
+    
+    config_filename = os.path.join(os.path.dirname(__file__), '.ss.ini')
+    if options.config:
+        language, recursive = ChangeConfiguration(args, config_filename)
+        print 'language=%s' % language
+        print 'recursive=%s' % recursive
+        return 0
+    else:
+        language, recursive = LoadConfiguration(config_filename)
 
-    input_filenames = list(FindMovieFiles(argv[1:]))
-    language = 'eng' 
+    input_filenames = list(FindMovieFiles(args[1:], recursive=recursive))
     
     def PrintStatus(text, status):
         spaces = 70 - len(text)
@@ -178,6 +236,7 @@ def Main(argv):
         return 1
     
     
+    sys.stdout.write('Language: %s\n' % language)
     sys.stdout.write('Querying OpenSubtitles.org for %d file(s)...\n' % len(input_filenames))
     sys.stdout.write('\n')
     matches = []
@@ -216,6 +275,7 @@ if __name__ == '__main__':
             log_file.write('Date: %s' % time.strftime('%c'))
             log_file.write('args: ' + repr(sys.argv))
             traceback.print_exc(file=log_file)
+        raise
 
 
 
