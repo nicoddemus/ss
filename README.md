@@ -4,11 +4,8 @@ Subtitles Searcher
 This is a command line script that automatically searches for video 
 subtitles using [OpenSubtitles.org](http://www.opensubtitles.org) APIs. 
 
-One advantage is that it can automatically search
-for all videos inside a directory, making it easy to download subtitle
-for TV shows season packs.
-
-This script is in its early stages, but is usable as it is.
+One advantage is that it can automatically search for all videos inside a directory, making it 
+easy to download subtitles for TV shows packs.
 
 Requirements
 ------------
@@ -32,12 +29,6 @@ the start of the Main() function.
 TODO
 ----
 
--   **Better search**
-    Currently it calculates the movie hash and uses only that to find a 
-    suitable subtitle, which sometimes makes it miss subtitles;  
-    *   Order subtitles by Downloaded# to find one that fits better;
-    *   If querying by hashing fails, try to find one with the closest name;
-    
 -   Proper command line options:
     *   --language
     *   --recursive
