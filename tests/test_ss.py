@@ -93,7 +93,7 @@ def testFindBestSubtitleMatches():
                 ),
                 dict(
                     SubFileName='Parks.and.Recreation.S05E13.HDTV.-LOL.srt',
-                    SubDownloadsCnt=3000,
+                    SubDownloadsCnt=9999,
                     SubDownloadLink='http://sub3.srt',
                     SubFormat='srt',
                 ),
@@ -101,7 +101,7 @@ def testFindBestSubtitleMatches():
         }
         
         results = list(FindBestSubtitleMatches(['Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi'], 'en'))
-        assert results == [('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub1.srt', '.srt' )]
+        assert results == [('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub2.srt', '.srt' )]
         
         
 #===================================================================================================
