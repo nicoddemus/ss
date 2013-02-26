@@ -2,7 +2,7 @@ import distribute_setup
 distribute_setup.use_setuptools()
 
 from setuptools import setup, find_packages
-description = "This is a command line script that automatically searches for video subtitles using [OpenSubtitles.org](http://www.opensubtitles.org) APIs.",
+description = "This is a command line script that automatically searches for video subtitles using OpenSubtitles.org APIs (http://www.opensubtitles.org).",
 
 setup(
     name = "ss",
