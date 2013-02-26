@@ -6,3 +6,4 @@ dist/
 ss.egg-info/
 *.egg
 *.gz
+__pycache__/
