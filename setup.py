@@ -6,7 +6,7 @@ description = "This is a command line script that automatically searches for vid
 
 setup(
     name = "ss",
-    version = "0.1",
+    version = "0.2",
     packages = [],
     scripts = ['ss.py'],
     entry_points = {'console_scripts' : ['ss = ss:Main']},
