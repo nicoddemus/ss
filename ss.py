@@ -61,7 +61,7 @@ def FindBestSubtitleMatches(movie_filenames, language):
         closest_matches = difflib.get_close_matches(basename, possibilities)
         if closest_matches:
             filtered = [x for x in search_results if x['SubFileName'] in closest_matches]
-            filtered.sort(key=lambda x: (closest_matches.index(x['SubFileName']), -x['SubDownloadsCnt']))
+            filtered.sort(key=lambda x: (closest_matches.index(x['SubFileName']), -int(x['SubDownloadsCnt'])))
             search_result = filtered[0]
             yield movie_filename, search_result['SubDownloadLink'], '.' + search_result['SubFormat']
         else:
@@ -325,8 +325,7 @@ def Main(argv):
 if __name__ == '__main__':
     try:
         import sys
-        #Main(sys.argv)    
-        Main(['', 'm:/incoming/Community.S04E03.HDTV.x264-LOL.mp4'])    
+        Main(sys.argv)    
     except:
         import traceback
         with file(__file__ + '.log', 'a+') as log_file:
