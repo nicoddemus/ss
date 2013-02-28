@@ -70,7 +70,7 @@ The following options are available:
 Continuous Integration
 ----------------------
 
-This project runs a continuous integration job at `travis.org`_!
+This project runs a Continuous Integration job at `travis.org`_!
 
 Current Build Status: |ci|
 
