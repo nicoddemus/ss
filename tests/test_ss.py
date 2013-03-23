@@ -80,19 +80,19 @@ def testFindBestSubtitleMatches():
         mock.return_value = {
             'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi' : [
                 dict(
-                    SubFileName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
+                    MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
                     SubDownloadsCnt=1000,
                     SubDownloadLink='http://sub1.srt',
                     SubFormat='srt',
                 ),
                 dict(
-                    SubFileName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
+                    MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
                     SubDownloadsCnt=1500,
                     SubDownloadLink='http://sub2.srt',
                     SubFormat='srt',
                 ),
                 dict(
-                    SubFileName='Parks.and.Recreation.S05E13.HDTV.-LOL.srt',
+                    MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.-LOL.srt',
                     SubDownloadsCnt=9999,
                     SubDownloadLink='http://sub3.srt',
                     SubFormat='srt',
