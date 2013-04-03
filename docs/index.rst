@@ -70,13 +70,13 @@ The following options are available:
 Continuous Integration
 ----------------------
 
-This project runs a continuous integration job at `travis.org`_!
+This project runs a Continuous Integration job at `travis-ci.org`_!
 
 Current Build Status: |ci|
 
 .. |ci| image:: https://secure.travis-ci.org/nicoddemus/ss.png?branch=master
 
-.. _travis.org: http://www.travis.org
+.. _travis-ci.org: https://travis-ci.org/nicoddemus/ss
 
 
 
