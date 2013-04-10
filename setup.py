@@ -2,7 +2,7 @@ import distribute_setup
 distribute_setup.use_setuptools()
 
 from setuptools import setup, find_packages
-description = "This is a command line script that automatically searches for video subtitles using OpenSubtitles.org APIs (http://www.opensubtitles.org).",
+description = "Command line script that automatically searches for video subtitles using OpenSubtitles.org APIs."
 
 setup(
     name = "ss",
@@ -16,7 +16,7 @@ setup(
     author_email = "nicoddemus@gmail.com",
     description = description,
     license = "GPL",
-    keywords = "hello world example examples",
+    keywords = "subtitles script",
     url = "http://nicoddemus.github.com/ss/",  
     
     use_2to3=True,
