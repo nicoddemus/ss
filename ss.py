@@ -256,9 +256,10 @@ def Main(argv):
         parser.print_help()
         return 2
     
-    config_filename = os.path.join(os.path.dirname(__file__), '.ss.ini')
+    config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
     if options.config:
         config = ChangeConfiguration(args, config_filename)
+        print 'Config file at:', config_filename
         for line in config.GetLines():
             print line
         return 0
