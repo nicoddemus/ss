@@ -7,3 +7,5 @@ ss.egg-info/
 *.egg
 *.gz
 __pycache__/
+*.swp
+.cit.yaml
