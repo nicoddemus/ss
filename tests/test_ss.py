@@ -77,8 +77,10 @@ def testQueryOpenSubtitles(tmpdir):
 def testFindBestSubtitleMatches():     
     
     with patch('ss.QueryOpenSubtitles') as mock:
+        movie_filename = 'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi'
+
         mock.return_value = {
-            'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi' : [
+            movie_filename : [
                 dict(
                     MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
                     SubDownloadsCnt=1000,
@@ -99,9 +101,22 @@ def testFindBestSubtitleMatches():
                 ),
             ]
         }
+
+        # duplicate the query return value with upper case, to ensure we ignore filename's
+        # case when finding matches
+        mock.return_value[movie_filename.upper()] = mock.return_value[movie_filename]
         
-        results = list(FindBestSubtitleMatches(['Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi'], 'en'))
-        assert results == [('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub2.srt', '.srt' )]
+        # normal query
+        expected_result = ('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub2.srt', '.srt' )
+        results = list(FindBestSubtitleMatches([movie_filename], 'en'))
+        assert results == [expected_result]
+
+        # change movie filename to upper; the same query should be returned
+        movie_filename = movie_filename.upper()
+        expected_result = expected_result[0].upper(), expected_result[1], expected_result[2]
+
+        results = list(FindBestSubtitleMatches([movie_filename], 'en'))
+        assert results == [expected_result]
         
         
 #===================================================================================================
