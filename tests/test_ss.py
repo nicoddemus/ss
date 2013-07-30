@@ -47,7 +47,7 @@ def testQueryOpenSubtitles(tmpdir):
     #
     with patch('xmlrpclib.Server') as rpc_mock:
         with patch('calculate_hash.CalculateHashForFile') as hash_mock:
-            hash_mock.return_value = 13
+            hash_mock.return_value = '13ab'
             rpc_mock.return_value = server = MagicMock(name='MockServer')
             server.LogIn = MagicMock()    
             server.LogIn.return_value = dict(token='TOKEN')    
@@ -59,8 +59,8 @@ def testQueryOpenSubtitles(tmpdir):
             search_results = QueryOpenSubtitles(filenames, 'eng')    
             server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
             calls = [
-                call('TOKEN', [dict(moviehash=13, moviebytesize=0, sublanguageid='eng'), dict(query='movie1', sublanguageid='eng')]),
-                call('TOKEN', [dict(moviehash=13, moviebytesize=0, sublanguageid='eng'), dict(query='movie2', sublanguageid='eng')]),
+                call('TOKEN', [dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng'), dict(query='movie1', sublanguageid='eng')]),
+                call('TOKEN', [dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng'), dict(query='movie2', sublanguageid='eng')]),
             ]
             server.SearchSubtitles.assert_has_calls(calls)
             server.LogOut.assert_called_once_with('TOKEN')

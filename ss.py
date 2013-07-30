@@ -26,7 +26,7 @@ def QueryOpenSubtitles(movie_filenames, language):
             search_queries = [
                 dict(
                     moviehash=calculate_hash.CalculateHashForFile(movie_filename),
-                    moviebytesize=os.path.getsize(movie_filename),
+                    moviebytesize=str(os.path.getsize(movie_filename)),
                     sublanguageid=language,
                 ),
                 dict(
@@ -34,7 +34,7 @@ def QueryOpenSubtitles(movie_filenames, language):
                     sublanguageid=language,
                 )
             ]
-            
+
             response = server.SearchSubtitles(token, search_queries)
             search_results = response['data']
         
