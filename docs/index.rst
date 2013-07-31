@@ -21,7 +21,7 @@ manager to automatically execute it when a movie or video finishes.
 Requirements
 ~~~~~~~~~~~~
 
-Python 2.5+
+Python 2.5, 2.6, 2.7 and PyPy. 
 
 
 Usage

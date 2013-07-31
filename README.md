@@ -6,7 +6,7 @@ Command line script that automatically searches for video subtitles using [OpenS
 Requirements
 ------------
 
-Python 2.5+
+Python 2.5, 2.6, 2.7 and PyPy.
 
 Documentation
 -------------
