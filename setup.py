@@ -14,7 +14,7 @@ setup(
     description = description,
     license = "GPL",
     keywords = "subtitles script",
-    url = "http://nicoddemus.github.com/ss/",  
+    url = "http://nicoddemus.github.io/ss/",  
     
     use_2to3=True,
 )
