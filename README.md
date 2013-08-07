@@ -59,6 +59,10 @@ The following options are available:
   the language as suffix; if that also already exists, it will use an additional *"ss"* prefix.
 
 
+## Support ##
+
+If you find any issues (not finding subtitles for a specific movie, errors, etc.), please report it in the 
+[issues page](https://github.com/nicoddemus/ss/issues).
 
 ## Continuous Integration ##
 
