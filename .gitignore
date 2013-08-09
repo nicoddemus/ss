@@ -1,6 +1,5 @@
 *.pyc
 *.log
-*.ini
 build/
 dist/
 ss.egg-info/
