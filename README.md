@@ -5,6 +5,8 @@
 This is a command line script that automatically searches for video 
 subtitles using [OpenSubtitles.org](http://www.opensubtitles.org ) APIs.
 
+![OpenSubtitles.org](http://static.opensubtitles.org/gfx/logo-transparent.png)
+
 One advantage is that it can automatically search for all videos inside a directory, making it 
 easy to download subtitles for TV shows packs. Also, it can usually be configured by any download 
 manager to automatically execute it when a movie or video finishes.
