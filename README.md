@@ -13,6 +13,8 @@ manager to automatically execute it when a movie or video finishes.
 
 **Latest Release**: [1.1.0](https://github.com/nicoddemus/ss/releases/tag/1.1.0)
 
+![badge](https://pypip.in/d/ss/badge.png)
+
 ## Requirements ##
 
 Python 2.5, 2.6, 2.7 and PyPy. 
