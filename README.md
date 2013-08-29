@@ -13,7 +13,7 @@ manager to automatically execute it when a movie or video finishes.
 
 **Latest Release**: [1.1.0](https://github.com/nicoddemus/ss/releases/tag/1.1.0)
 
-![badge](https://pypip.in/d/ss/badge.png)
+[![badge](https://pypip.in/d/ss/badge.png)](https://crate.io/packages/ss)
 
 ## Requirements ##
 
@@ -72,5 +72,5 @@ If you find any issues (not finding subtitles for a specific movie, errors, etc.
 
 This project runs a Continuous Integration job at [travis-ci.org](https://travis-ci.org/nicoddemus/ss)!
 
-Current Build Status: ![ci](https://secure.travis-ci.org/nicoddemus/ss.png?branch=master)
+Current Build Status: [![ci](https://secure.travis-ci.org/nicoddemus/ss.png?branch=master)](https://travis-ci.org/nicoddemus/ss)
 
