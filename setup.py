@@ -3,7 +3,7 @@ description = "Command line script that automatically searches for video subtitl
 
 setup(
     name = "ss",
-    version = "1.2.rc1",
+    version = "1.2.rc2",
     packages = [],
     scripts = ['ss.py'],
     py_modules=['calculate_hash'],
