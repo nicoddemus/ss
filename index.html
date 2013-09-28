@@ -51,14 +51,28 @@ subtitles using <a href="http://www.opensubtitles.org">OpenSubtitles.org</a> API
 easy to download subtitles for TV shows packs. Also, it can usually be configured by any download 
 manager to automatically execute it when a movie or video finishes.</p>
 
-<p><strong>Latest Release</strong>: <a href="https://github.com/nicoddemus/ss/releases/tag/1.1.0">1.1.0</a></p>
+<p><strong>Latest Release</strong>: <a href="https://github.com/nicoddemus/ss/releases/tag/1.2.rc2">1.2.rc2</a></p>
 
-<p><img src="https://pypip.in/d/ss/badge.png" alt="badge"></p>
+<p><a href="https://crate.io/packages/ss"><img src="https://pypip.in/d/ss/badge.png" alt="badge"></a> <a href="https://travis-ci.org/nicoddemus/ss"><img src="https://secure.travis-ci.org/nicoddemus/ss.png?branch=master" alt="ci"></a></p>
 
 <h2>
 <a name="requirements" class="anchor" href="#requirements"><span class="octicon octicon-link"></span></a>Requirements</h2>
 
-<p>Python 2.5, 2.6, 2.7 and PyPy. </p>
+<p>Python 2.6, 2.7 or PyPy.
+Also uses the <a href="https://github.com/wackou/guessit">guessit</a> package.</p>
+
+<h2>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h2>
+
+<p>Install using <a href="http://www.pip-installer.org">pip</a>:</p>
+
+<div class="highlight highlight-bash"><pre>pip install ss
+</pre></div>
+
+<p>Or if you donwload the source, execute on the extracted folder:</p>
+
+<div class="highlight highlight-bash"><pre>python setup.py install
+</pre></div>
 
 <h2>
 <a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
@@ -104,13 +118,6 @@ the language as suffix; if that also already exists, it will use an additional <
 
 <p>If you find any issues (not finding subtitles for a specific movie, errors, etc.), please report it in the 
 <a href="https://github.com/nicoddemus/ss/issues">issues page</a>.</p>
-
-<h2>
-<a name="continuous-integration" class="anchor" href="#continuous-integration"><span class="octicon octicon-link"></span></a>Continuous Integration</h2>
-
-<p>This project runs a Continuous Integration job at <a href="https://travis-ci.org/nicoddemus/ss">travis-ci.org</a>!</p>
-
-<p>Current Build Status: <img src="https://secure.travis-ci.org/nicoddemus/ss.png?branch=master" alt="ci"></p>
         </article>
       </div>
     </div>
