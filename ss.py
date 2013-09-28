@@ -1,19 +1,58 @@
 from __future__ import with_statement
-import xmlrpclib
-import difflib
-import os
 import calculate_hash
+import guessit
 import gzip
-import urllib
-import tempfile
-import shutil
-import time
 import optparse
+import os
+import pprint
+import shutil
+import tempfile
+import time
+import urllib
+import xmlrpclib
+
 
 #===================================================================================================
-# QueryOpenSubtitles
+# obtain_guessit_query
 #===================================================================================================
-def QueryOpenSubtitles(movie_filenames, language):
+def obtain_guessit_query(movie_filename, language):
+    guess = guessit.guess_file_info(os.path.basename(movie_filename), 'autodetect')
+    
+    def extract_query(guess, parts):
+        result = ['"%s"' % guess.get(k) for k in parts if guess.get(k)]
+        return ' '.join(result)
+
+    result = {}
+    
+    if guess['type'] == 'episode':
+        result['query'] = extract_query(guess, ['series', 'title', 'releaseGroup'])
+        result['season'] = guess['season']
+        result['episode'] = guess['episodeNumber']
+            
+    elif guess['type'] == 'movie':
+        result['query'] = extract_query(guess, ['title', 'year'])
+    else:
+        result['query'] = movie_filename
+        
+    result['sublanguageid'] = language
+    
+    return result
+
+
+#===================================================================================================
+# obtain_movie_hash_query
+#===================================================================================================
+def obtain_movie_hash_query(movie_filename, language):
+    return {
+        'moviehash': calculate_hash.CalculateHashForFile(movie_filename),
+        'moviebytesize': str(os.path.getsize(movie_filename)),
+        'sublanguageid': language,
+    }
+
+#===================================================================================================
+# query_open_subtitles
+#===================================================================================================
+def query_open_subtitles(movie_filenames, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = xmlrpclib.Server(uri, verbose=0, allow_none=True, use_datetime=True)
     login_info = server.LogIn('', '', 'en', 'OS Test User Agent')
@@ -24,15 +63,8 @@ def QueryOpenSubtitles(movie_filenames, language):
         
         for movie_filename in movie_filenames:
             search_queries = [
-                dict(
-                    moviehash=calculate_hash.CalculateHashForFile(movie_filename),
-                    moviebytesize=str(os.path.getsize(movie_filename)),
-                    sublanguageid=language,
-                ),
-                dict(
-                    query=os.path.basename(os.path.splitext(movie_filename)[0]),
-                    sublanguageid=language,
-                )
+                obtain_guessit_query(movie_filename, language),
+                obtain_movie_hash_query(movie_filename, language),
             ]
 
             response = server.SearchSubtitles(token, search_queries)
@@ -41,46 +73,35 @@ def QueryOpenSubtitles(movie_filenames, language):
             if search_results:
                 result[movie_filename] = search_results
                 
+            f = file(movie_filename + '.search', 'w')
+            f.write(movie_filename + '\n\n')
+            pprint.pprint(search_results, f)
+
         return result 
     finally:
         server.LogOut(token)
     
 
 #===================================================================================================
-# FindBestSubtitleMatches
+# find_subtitles
 #===================================================================================================
-def FindBestSubtitleMatches(movie_filenames, language):
+def find_subtitles(movie_filenames, language):
     
-    all_search_results = QueryOpenSubtitles(movie_filenames, language)
+    all_search_results = query_open_subtitles(movie_filenames, language)
     
     for movie_filename in movie_filenames:
-        criteria = 'MovieReleaseName'
-        
-        # convert movie names from results to lower case so we can do a case-insensitive
-        # comparison when trying to find a suitable match
         search_results = all_search_results.get(movie_filename, [])
-        for search_result in search_results:
-            search_result[criteria] = search_result[criteria].lower()
-
-        # find search result that best matches the input movie filename (case insensitive)
-        possibilities = [search_result[criteria] for search_result in search_results]
-        basename = os.path.splitext(os.path.basename(movie_filename))[0].lower()
-        closest_matches = difflib.get_close_matches(basename, possibilities)
-        
-        if closest_matches:
-            # found matches; rank them by number of downloads and return that
-            filtered = [x for x in search_results if x[criteria] in closest_matches]
-            filtered.sort(key=lambda x: (closest_matches.index(x[criteria]), -int(x['SubDownloadsCnt'])))
-            search_result = filtered[0]
+        if search_results:
+            search_result = search_results[0]
             yield movie_filename, search_result['SubDownloadLink'], '.' + search_result['SubFormat']
         else:
             yield movie_filename, None, None
                 
                 
 #===================================================================================================
-# ObtainSubtitleFilename
+# obtain_subtitle_filename
 #===================================================================================================
-def ObtainSubtitleFilename(movie_filename, language, subtitle_ext):
+def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
     dirname = os.path.dirname(movie_filename)
     basename = os.path.splitext(os.path.basename(movie_filename))[0]
     
@@ -101,9 +122,9 @@ def ObtainSubtitleFilename(movie_filename, language, subtitle_ext):
 
 
 #===================================================================================================
-# DownloadSub
+# download_subtitle
 #===================================================================================================
-def DownloadSub(subtitle_url, subtitle_filename):
+def download_subtitle(subtitle_url, subtitle_filename):
     # first download it and save to a temp dir
     urlfile = urllib.urlopen(subtitle_url)
     try:
@@ -133,9 +154,9 @@ def DownloadSub(subtitle_url, subtitle_filename):
         
         
 #===================================================================================================
-# FindMovieFiles
+# find_movie_files
 #===================================================================================================
-def FindMovieFiles(input_names, recursive=False):
+def find_movie_files(input_names, recursive=False):
     extensions = set(['.avi', '.mp4', '.mpg', '.mkv'])
     returned = set()
     
@@ -154,19 +175,19 @@ def FindMovieFiles(input_names, recursive=False):
                         returned.add(result)
                 
                 elif os.path.isdir(result) and recursive:
-                    for x in FindMovieFiles([result], recursive):
+                    for x in find_movie_files([result], recursive):
                         yield x
                         
                         
 #===================================================================================================
-# HasSubtitle
+# has_subtitle
 #===================================================================================================
-def HasSubtitle(filename):
+def has_subtitle(filename):
     # list of subtitle formats obtained from opensubtitles' advanced search page.
     formats = ['.sub', '.srt', '.ssa', '.smi', '.mpl']                        
     basename = os.path.splitext(filename)[0]
-    for format in formats:
-        if os.path.isfile(basename + format):
+    for ext in formats:
+        if os.path.isfile(basename + ext):
             return True
         
     return False
@@ -175,23 +196,23 @@ def HasSubtitle(filename):
             
 
 #===================================================================================================
-# ChangeConfiguration
+# change_configuration
 #===================================================================================================
-def ChangeConfiguration(params, filename):
-    config = LoadConfiguration(filename)
-    config.SetFromLines(params)
+def change_configuration(params, filename):
+    config = load_configuration(filename)
+    config.set_config_from_lines(params)
     
     with file(filename, 'w') as f:
-        for line in config.GetLines():
+        for line in config.get_lines():
             f.write(line + '\n')
         
     return config
     
         
 #===================================================================================================
-# LoadConfiguration
+# load_configuration
 #===================================================================================================
-def LoadConfiguration(filename):
+def load_configuration(filename):
     
     if os.path.isfile(filename):
         with file(filename) as f:
@@ -200,7 +221,7 @@ def LoadConfiguration(filename):
         lines = []
                         
     config = Configuration()
-    config.SetFromLines(lines)
+    config.set_config_from_lines(lines)
     return config
 
 
@@ -215,9 +236,9 @@ class Configuration(object):
         self.skip = skip
 
 
-    def SetFromLines(self, strings):
+    def set_config_from_lines(self, strings):
         
-        def ParseBool(value):
+        def parse_bool(value):
             return int(value.lower() in ('1', 'true', 'yes'))
         
         for line in strings:
@@ -226,12 +247,12 @@ class Configuration(object):
                 if name == 'language':
                     self.language = value
                 elif name == 'recursive':
-                    self.recursive = ParseBool(value)
+                    self.recursive = parse_bool(value)
                 elif name == 'skip':
-                    self.skip = ParseBool(value) 
+                    self.skip = parse_bool(value) 
                     
                     
-    def GetLines(self):
+    def get_lines(self):
         return [
             'language=%s' % self.language,
             'recursive=%s' % self.recursive,
@@ -250,9 +271,9 @@ class Configuration(object):
     
 
 #===================================================================================================
-# Main
+# main
 #===================================================================================================
-def Main(argv):
+def main(argv):
     parser = optparse.OptionParser(
         usage='Usage: %prog [options] <file or dir> <file or dir>...',
         description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).',
@@ -266,15 +287,15 @@ def Main(argv):
     
     config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
     if options.config:
-        config = ChangeConfiguration(args, config_filename)
+        config = change_configuration(args, config_filename)
         print 'Config file at:', config_filename
-        for line in config.GetLines():
+        for line in config.get_lines():
             print line
         return 0
     else:
-        config = LoadConfiguration(config_filename)
+        config = load_configuration(config_filename)
 
-    input_filenames = list(FindMovieFiles(args[1:], recursive=config.recursive))
+    input_filenames = list(find_movie_files(args[1:], recursive=config.recursive))
     if not input_filenames:
         sys.stdout.write('No files to search subtitles for. Aborting.\n')
         return 1
@@ -283,7 +304,7 @@ def Main(argv):
     if config.skip:
         new_input_filenames = []
         for input_filename in input_filenames:
-            if HasSubtitle(input_filename):
+            if has_subtitle(input_filename):
                 skipped_filenames.append(input_filename)
             else:
                 new_input_filenames.append(input_filename)
@@ -308,7 +329,7 @@ def Main(argv):
     
         
     matches = []
-    for (movie_filename, subtitle_url, subtitle_ext) in sorted(FindBestSubtitleMatches(input_filenames, language=config.language)):
+    for (movie_filename, subtitle_url, subtitle_ext) in sorted(find_subtitles(input_filenames, language=config.language)):
         if subtitle_url:
             status = 'OK'
         else:
@@ -317,7 +338,7 @@ def Main(argv):
         PrintStatus('- %s' % os.path.basename(movie_filename), status)
         
         if subtitle_url:
-            subtitle_filename = ObtainSubtitleFilename(movie_filename, config.language, subtitle_ext)
+            subtitle_filename = obtain_subtitle_filename(movie_filename, config.language, subtitle_ext)
             matches.append((movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
     
     if not matches:
@@ -326,16 +347,16 @@ def Main(argv):
     sys.stdout.write('\n') 
     sys.stdout.write('Downloading...\n')
     for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
-        DownloadSub(subtitle_url, subtitle_filename)
+        download_subtitle(subtitle_url, subtitle_filename)
         PrintStatus(' - %s' % os.path.basename(subtitle_filename), 'DONE')
         
 #===================================================================================================
-# Entry
+# main entry
 #===================================================================================================
 if __name__ == '__main__':
     try:
         import sys
-        Main(sys.argv)    
+        main(sys.argv)    
     except:
         import traceback
         with file(__file__ + '.log', 'a+') as log_file:
