@@ -1,6 +1,5 @@
 from __future__ import with_statement
 import calculate_hash
-import difflib
 import guessit
 import gzip
 import optparse
@@ -32,9 +31,10 @@ def obtain_guessit_query(movie_filename, language):
             
     elif guess['type'] == 'movie':
         result['query'] = extract_query(guess, ['title', 'year'])
+    else:
+        result['query'] = movie_filename
         
-    if result:
-        result['sublanguageid'] = language
+    result['sublanguageid'] = language
     
     return result
 
@@ -62,7 +62,6 @@ def query_open_subtitles(movie_filenames, language):
         result = {}
         
         for movie_filename in movie_filenames:
-            
             search_queries = [
                 obtain_guessit_query(movie_filename, language),
                 obtain_movie_hash_query(movie_filename, language),
@@ -77,7 +76,6 @@ def query_open_subtitles(movie_filenames, language):
             f = file(movie_filename + '.search', 'w')
             f.write(movie_filename + '\n\n')
             pprint.pprint(search_results, f)
-            print >> f, '=' * 80
 
         return result 
     finally:

@@ -2,7 +2,7 @@ from __future__ import with_statement
 from contextlib import nested
 from mock import patch, MagicMock, call
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle
+    Configuration, has_subtitle, obtain_guessit_query
 import pytest
 
     
@@ -69,6 +69,35 @@ def test_query_open_subtitles(tmpdir):
             str(filename1) : {'SubFileName' : 'movie.srt'},
             str(filename2) : {'SubFileName' : 'movie.srt'},
         }
+        
+        
+#===================================================================================================
+# test_obtain_guessit_query
+#===================================================================================================
+def test_obtain_guessit_query():
+    assert obtain_guessit_query('Drive (2011) BDRip XviD-COCAIN.avi', 'eng') == {
+        'query': '"Drive" "2011"',
+        'sublanguageid' : 'eng',
+    }
+             
+    assert obtain_guessit_query('Project.X.2012.DVDRip.XviD-AMIABLE.avi', 'eng') == {
+        'query': '"Project X" "2012"',
+        'sublanguageid' : 'eng',
+    }
+             
+    assert obtain_guessit_query('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'eng') == {
+        'query': u'"Parks and Recreation" "LOL"',
+        'episode': 13,
+        'season': 5,
+        'sublanguageid' : 'eng',
+    }
+             
+    assert obtain_guessit_query('Modern.Family.S05E01.HDTV.x264-LOL.mp4', 'eng') == {
+        'query': u'"Modern Family" "LOL"',
+        'episode': 1,
+        'season': 5,
+        'sublanguageid' : 'eng',
+    }         
             
             
 #===================================================================================================
