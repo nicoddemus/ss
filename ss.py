@@ -1,14 +1,53 @@
 from __future__ import with_statement
-import xmlrpclib
-import difflib
-import os
 import calculate_hash
+import difflib
+import guessit
 import gzip
-import urllib
-import tempfile
-import shutil
-import time
 import optparse
+import os
+import pprint
+import shutil
+import tempfile
+import time
+import urllib
+import xmlrpclib
+
+
+#===================================================================================================
+# obtain_guessit_query
+#===================================================================================================
+def obtain_guessit_query(movie_filename, language):
+    guess = guessit.guess_file_info(os.path.basename(movie_filename), 'autodetect')
+    
+    def extract_query(guess, parts):
+        result = ['"%s"' % guess.get(k) for k in parts if guess.get(k)]
+        return ' '.join(result)
+
+    result = {}
+    
+    if guess['type'] == 'episode':
+        result['query'] = extract_query(guess, ['series', 'title', 'releaseGroup'])
+        result['season'] = guess['season']
+        result['episode'] = guess['episodeNumber']
+            
+    elif guess['type'] == 'movie':
+        result['query'] = extract_query(guess, ['title', 'year'])
+        
+    if result:
+        result['sublanguageid'] = language
+    
+    return result
+
+
+#===================================================================================================
+# obtain_movie_hash_query
+#===================================================================================================
+def obtain_movie_hash_query(movie_filename, language):
+    return {
+        'moviehash': calculate_hash.CalculateHashForFile(movie_filename),
+        'moviebytesize': str(os.path.getsize(movie_filename)),
+        'sublanguageid': language,
+    }
 
 #===================================================================================================
 # query_open_subtitles
@@ -23,16 +62,10 @@ def query_open_subtitles(movie_filenames, language):
         result = {}
         
         for movie_filename in movie_filenames:
+            
             search_queries = [
-                dict(
-                    moviehash=calculate_hash.CalculateHashForFile(movie_filename),
-                    moviebytesize=str(os.path.getsize(movie_filename)),
-                    sublanguageid=language,
-                ),
-                dict(
-                    query=os.path.basename(os.path.splitext(movie_filename)[0]),
-                    sublanguageid=language,
-                )
+                obtain_guessit_query(movie_filename, language),
+                obtain_movie_hash_query(movie_filename, language),
             ]
 
             response = server.SearchSubtitles(token, search_queries)
@@ -41,6 +74,11 @@ def query_open_subtitles(movie_filenames, language):
             if search_results:
                 result[movie_filename] = search_results
                 
+            f = file(movie_filename + '.search', 'w')
+            f.write(movie_filename + '\n\n')
+            pprint.pprint(search_results, f)
+            print >> f, '=' * 80
+
         return result 
     finally:
         server.LogOut(token)
@@ -54,24 +92,9 @@ def find_subtitles(movie_filenames, language):
     all_search_results = query_open_subtitles(movie_filenames, language)
     
     for movie_filename in movie_filenames:
-        criteria = 'MovieReleaseName'
-        
-        # convert movie names from results to lower case so we can do a case-insensitive
-        # comparison when trying to find a suitable match
         search_results = all_search_results.get(movie_filename, [])
-        for search_result in search_results:
-            search_result[criteria] = search_result[criteria].lower()
-
-        # find search result that best matches the input movie filename (case insensitive)
-        possibilities = [search_result[criteria] for search_result in search_results]
-        basename = os.path.splitext(os.path.basename(movie_filename))[0].lower()
-        closest_matches = difflib.get_close_matches(basename, possibilities)
-        
-        if closest_matches:
-            # found matches; rank them by number of downloads and return that
-            filtered = [x for x in search_results if x[criteria] in closest_matches]
-            filtered.sort(key=lambda x: (closest_matches.index(x[criteria]), -int(x['SubDownloadsCnt'])))
-            search_result = filtered[0]
+        if search_results:
+            search_result = search_results[0]
             yield movie_filename, search_result['SubDownloadLink'], '.' + search_result['SubFormat']
         else:
             yield movie_filename, None, None

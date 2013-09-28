@@ -1,8 +1,9 @@
 from __future__ import with_statement
-import pytest
+from contextlib import nested
 from mock import patch, MagicMock, call
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
     Configuration, has_subtitle
+import pytest
 
     
 #===================================================================================================
@@ -42,33 +43,32 @@ def test_has_subtitles(tmpdir):
 # test_query_open_subtitles
 #===================================================================================================
 def test_query_open_subtitles(tmpdir):
-    tmpdir.join('movie1.avi').ensure()
-    tmpdir.join('movie2.avi').ensure()
-    #
-    with patch('xmlrpclib.Server') as rpc_mock:
-        with patch('calculate_hash.CalculateHashForFile') as hash_mock:
-            hash_mock.return_value = '13ab'
-            rpc_mock.return_value = server = MagicMock(name='MockServer')
-            server.LogIn = MagicMock()    
-            server.LogIn.return_value = dict(token='TOKEN')    
-            server.SearchSubtitles = MagicMock()    
-            server.SearchSubtitles.return_value = dict(data={'SubFileName' : 'movie.srt'})    
-            server.LogOut = MagicMock()
-            
-            filenames = [str(tmpdir.join('movie1.avi')), str(tmpdir.join('movie2.avi'))]
-            search_results = query_open_subtitles(filenames, 'eng')    
-            server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
-            calls = [
-                call('TOKEN', [dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng'), dict(query='movie1', sublanguageid='eng')]),
-                call('TOKEN', [dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng'), dict(query='movie2', sublanguageid='eng')]),
-            ]
-            server.SearchSubtitles.assert_has_calls(calls)
-            server.LogOut.assert_called_once_with('TOKEN')
-            
-            assert search_results == {
-                str(tmpdir.join('movie1.avi')) : {'SubFileName' : 'movie.srt'},
-                str(tmpdir.join('movie2.avi')) : {'SubFileName' : 'movie.srt'},
-            }
+    filename1 = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
+    filename2 = tmpdir.join('Project.X.2012.DVDRip.XviD-AMIABLE.avi').ensure()
+    
+    with nested(patch('xmlrpclib.Server'), patch('calculate_hash.CalculateHashForFile')) as (rpc_mock, hash_mock):
+        hash_mock.return_value = '13ab'
+        rpc_mock.return_value = server = MagicMock(name='MockServer')
+        server.LogIn = MagicMock()    
+        server.LogIn.return_value = dict(token='TOKEN')    
+        server.SearchSubtitles = MagicMock()    
+        server.SearchSubtitles.return_value = dict(data={'SubFileName' : 'movie.srt'})    
+        server.LogOut = MagicMock()
+        
+        search_results = query_open_subtitles([str(filename1), str(filename2)], 'eng')    
+        server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
+        expected_calls = [
+             call('TOKEN', [dict(query=u'"Drive" "2011"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
+             call('TOKEN', [dict(query=u'"Project X" "2012"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
+        ]
+        
+        server.SearchSubtitles.assert_has_calls(expected_calls)
+        server.LogOut.assert_called_once_with('TOKEN')
+        
+        assert search_results == {
+            str(filename1) : {'SubFileName' : 'movie.srt'},
+            str(filename2) : {'SubFileName' : 'movie.srt'},
+        }
             
             
 #===================================================================================================
@@ -102,22 +102,10 @@ def test_find_best_subtitles_matches():
             ]
         }
 
-        # duplicate the query return value with upper case, to ensure we ignore filename's
-        # case when finding matches
-        mock.return_value[movie_filename.upper()] = mock.return_value[movie_filename]
-        
-        # normal query
-        expected_result = ('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub2.srt', '.srt' )
+        expected_result = ('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub1.srt', '.srt' )
         results = list(find_subtitles([movie_filename], 'en'))
         assert results == [expected_result]
 
-        # change movie filename to upper; the same query should be returned
-        movie_filename = movie_filename.upper()
-        expected_result = expected_result[0].upper(), expected_result[1], expected_result[2]
-
-        results = list(find_subtitles([movie_filename], 'en'))
-        assert results == [expected_result]
-        
         
 #===================================================================================================
 # test_change_configuration
@@ -151,4 +139,4 @@ def test_load_configuration(tmpdir):
 # main    
 #===================================================================================================
 if __name__ == '__main__':
-    pytest.main() #@UndefinedVariable
+    pytest.main(['', '-s', '-ktest_query']) #@UndefinedVariable
