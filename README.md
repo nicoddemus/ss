@@ -17,8 +17,22 @@ manager to automatically execute it when a movie or video finishes.
 
 ## Requirements ##
 
-Python 2.5, 2.6, 2.7 and PyPy. 
+Python 2.6, 2.7 or PyPy.
+Also uses the [guessit](https://github.com/wackou/guessit) package.
 
+## Install ##
+
+Install using [pip](http://www.pip-installer.org):
+
+```bash
+pip install ss
+```
+
+Or if you donwload the source, execute on the extracted folder:
+
+```bash
+python setup.py install
+```
 
 ## Usage ##
 
