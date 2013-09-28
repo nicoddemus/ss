@@ -1,26 +1,26 @@
 from __future__ import with_statement
 import pytest
 from mock import patch, MagicMock, call
-from ss import FindMovieFiles, QueryOpenSubtitles, FindBestSubtitleMatches, ChangeConfiguration, LoadConfiguration,\
-    Configuration, HasSubtitle
+from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
+    Configuration, has_subtitle
 
     
 #===================================================================================================
-# testFindMovieFiles
+# test_find_movie_files
 #===================================================================================================
-def testFindMovieFiles(tmpdir):
+def test_find_movie_files(tmpdir):
     tmpdir.join('video.avi').ensure()
     tmpdir.join('video.mpg').ensure()
     tmpdir.join('video.srt').ensure()
     tmpdir.join('sub', 'video.mp4').ensure()
     
-    obtained = sorted(FindMovieFiles([str(tmpdir.join('video.mpg')), str(tmpdir)]))
+    obtained = sorted(find_movie_files([str(tmpdir.join('video.mpg')), str(tmpdir)]))
     assert obtained == [
         tmpdir.join('video.avi'),
         tmpdir.join('video.mpg'),
     ]
      
-    obtained = sorted(FindMovieFiles([str(tmpdir)], recursive=True))
+    obtained = sorted(find_movie_files([str(tmpdir)], recursive=True))
     assert obtained == [
         tmpdir.join('sub', 'video.mp4'),
         tmpdir.join('video.avi'),
@@ -29,19 +29,19 @@ def testFindMovieFiles(tmpdir):
     
     
 #==================================================================================================
-# testHasSubtitles
+# test_has_subtitles
 #==================================================================================================
-def testHasSubtitles(tmpdir):
-    assert not HasSubtitle(str(tmpdir.join('video.avi').ensure()))
+def test_has_subtitles(tmpdir):
+    assert not has_subtitle(str(tmpdir.join('video.avi').ensure()))
     
     tmpdir.join('video.srt').ensure()
-    assert HasSubtitle(str(tmpdir.join('video.avi').ensure()))
+    assert has_subtitle(str(tmpdir.join('video.avi').ensure()))
     
     
 #===================================================================================================
-# testQueryOpenSubtitles
+# test_query_open_subtitles
 #===================================================================================================
-def testQueryOpenSubtitles(tmpdir):
+def test_query_open_subtitles(tmpdir):
     tmpdir.join('movie1.avi').ensure()
     tmpdir.join('movie2.avi').ensure()
     #
@@ -56,7 +56,7 @@ def testQueryOpenSubtitles(tmpdir):
             server.LogOut = MagicMock()
             
             filenames = [str(tmpdir.join('movie1.avi')), str(tmpdir.join('movie2.avi'))]
-            search_results = QueryOpenSubtitles(filenames, 'eng')    
+            search_results = query_open_subtitles(filenames, 'eng')    
             server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
             calls = [
                 call('TOKEN', [dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng'), dict(query='movie1', sublanguageid='eng')]),
@@ -72,11 +72,11 @@ def testQueryOpenSubtitles(tmpdir):
             
             
 #===================================================================================================
-# testFindBestSubtitleMatches
+# test_find_best_subtitles_matches
 #===================================================================================================
-def testFindBestSubtitleMatches():     
+def test_find_best_subtitles_matches():     
     
-    with patch('ss.QueryOpenSubtitles') as mock:
+    with patch('ss.query_open_subtitles') as mock:
         movie_filename = 'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi'
 
         mock.return_value = {
@@ -108,34 +108,34 @@ def testFindBestSubtitleMatches():
         
         # normal query
         expected_result = ('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'http://sub2.srt', '.srt' )
-        results = list(FindBestSubtitleMatches([movie_filename], 'en'))
+        results = list(find_subtitles([movie_filename], 'en'))
         assert results == [expected_result]
 
         # change movie filename to upper; the same query should be returned
         movie_filename = movie_filename.upper()
         expected_result = expected_result[0].upper(), expected_result[1], expected_result[2]
 
-        results = list(FindBestSubtitleMatches([movie_filename], 'en'))
+        results = list(find_subtitles([movie_filename], 'en'))
         assert results == [expected_result]
         
         
 #===================================================================================================
-# testChangeConfiguration
+# test_change_configuration
 #===================================================================================================
-def testChangeConfiguration(tmpdir):
+def test_change_configuration(tmpdir):
     filename = str(tmpdir.join('ss.conf'))
-    assert ChangeConfiguration([], filename) == Configuration('eng', 0, 0)
-    assert ChangeConfiguration(['language=br'], filename) == Configuration('br', 0, 0)
-    assert ChangeConfiguration(['language=us', 'recursive=1'], filename) == Configuration('us', 1, 0)
-    assert ChangeConfiguration(['foo=bar', 'recursive=0'], filename) == Configuration('us', 0, 0)
-    assert ChangeConfiguration(['skip=yes'], filename) == Configuration('us', 0, 1)
+    assert change_configuration([], filename) == Configuration('eng', 0, 0)
+    assert change_configuration(['language=br'], filename) == Configuration('br', 0, 0)
+    assert change_configuration(['language=us', 'recursive=1'], filename) == Configuration('us', 1, 0)
+    assert change_configuration(['foo=bar', 'recursive=0'], filename) == Configuration('us', 0, 0)
+    assert change_configuration(['skip=yes'], filename) == Configuration('us', 0, 1)
     
     
 #===================================================================================================
-# testLoadConfiguration
+# test_load_configuration
 #===================================================================================================
-def testLoadConfiguration(tmpdir):
-    assert LoadConfiguration(str(tmpdir.join('ss.conf'))) == Configuration('eng', 0, 0)
+def test_load_configuration(tmpdir):
+    assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('eng', 0, 0)
     
     f = tmpdir.join('ss.conf').open('w')
     f.write('language=br\n')
@@ -145,7 +145,7 @@ def testLoadConfiguration(tmpdir):
     f.write('foobar=4\n')
     f.close()
     
-    assert LoadConfiguration(str(tmpdir.join('ss.conf'))) == Configuration('br', 1, 1)
+    assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('br', 1, 1)
            
 #===================================================================================================
 # main    
