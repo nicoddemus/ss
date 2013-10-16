@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 description = "Command line script that automatically searches for video subtitles using OpenSubtitles.org APIs."
+long_description = ''
 
 setup(
     name = "ss",
@@ -14,6 +15,7 @@ setup(
     author = "nicoddemus@gmail.com",
     author_email = "nicoddemus@gmail.com",
     description = description,
+    long_description = long_description,
     license = "GPL",
     keywords = "subtitles script",
     url = "http://nicoddemus.github.io/ss/",  
