@@ -91,10 +91,6 @@ def query_open_subtitles(movie_filenames, language):
                 search_results = filter_bad_results(search_results, guessit_query)
                 result[movie_filename] = search_results
                 
-            f = file(movie_filename + '.search', 'w')
-            f.write(movie_filename + '\n\n')
-            pprint.pprint(search_results, f)
-
         return result 
     finally:
         server.LogOut(token)
