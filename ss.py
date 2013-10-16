@@ -48,6 +48,22 @@ def obtain_movie_hash_query(movie_filename, language):
         'moviebytesize': str(os.path.getsize(movie_filename)),
         'sublanguageid': language,
     }
+    
+    
+#===================================================================================================
+# filter_bad_results
+#===================================================================================================
+def filter_bad_results(search_results, guessit_query):    
+    # filter out search results with bad season and episode number (if applicable);
+    # sometimes OpenSubtitles will report search results subtitles that belong
+    # to a different episode or season from a tv show; no reason why, but it seems to
+    # work well just filtering those out
+    if 'season' in guessit_query and 'episode' in guessit_query:
+        guessit_season_episode = (guessit_query['season'], guessit_query['episode'])
+        search_results = [x for x in search_results 
+            if (int(x['SeriesSeason']), int(x['SeriesEpisode'])) == guessit_season_episode]
+    return search_results
+
 
 #===================================================================================================
 # query_open_subtitles
@@ -62,8 +78,9 @@ def query_open_subtitles(movie_filenames, language):
         result = {}
         
         for movie_filename in movie_filenames:
+            guessit_query = obtain_guessit_query(movie_filename, language)
             search_queries = [
-                obtain_guessit_query(movie_filename, language),
+                guessit_query,
                 obtain_movie_hash_query(movie_filename, language),
             ]
 
@@ -71,6 +88,7 @@ def query_open_subtitles(movie_filenames, language):
             search_results = response['data']
         
             if search_results:
+                search_results = filter_bad_results(search_results, guessit_query)
                 result[movie_filename] = search_results
                 
             f = file(movie_filename + '.search', 'w')
