@@ -4,7 +4,7 @@ long_description = ''
 
 setup(
     name = "ss",
-    version = "1.2rc3",
+    version = "1.2.0",
     packages = [],
     scripts = ['ss.py'],
     py_modules=['calculate_hash'],
@@ -18,7 +18,5 @@ setup(
     long_description = long_description,
     license = "GPL",
     keywords = "subtitles script",
-    url = "http://nicoddemus.github.io/ss/",  
-    
-    use_2to3=True,
+    url = "http://nicoddemus.github.io/ss/",
 )
