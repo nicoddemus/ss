@@ -5,7 +5,7 @@ long_description = ''
 
 setup(
     name="ss",
-    version="1.2.0",
+    version="1.3",
     packages=[],
     scripts=['ss.py'],
     py_modules=['calculate_hash'],
