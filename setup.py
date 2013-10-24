@@ -20,4 +20,13 @@ setup(
     license="GPL",
     keywords="subtitles script",
     url="http://nicoddemus.github.io/ss/",
+
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
+        'Intended Audience :: End Users/Desktop',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2.7',
+    ]
 )
