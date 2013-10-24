@@ -28,8 +28,10 @@ def obtain_guessit_query(movie_filename, language):
 
     if guess['type'] == 'episode':
         result['query'] = extract_query(guess, ['series', 'title', 'releaseGroup'])
-        result['season'] = guess['season']
-        result['episode'] = guess['episodeNumber']
+        if 'season' in guess:
+            result['season'] = guess['season']
+        if 'episodeNumber' in guess:
+            result['episode'] = guess['episodeNumber']
 
     elif guess['type'] == 'movie':
         result['query'] = extract_query(guess, ['title', 'year'])
