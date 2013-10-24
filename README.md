@@ -11,7 +11,7 @@ One advantage is that it can automatically search for all videos inside a direct
 easy to download subtitles for TV shows packs. Also, it can usually be configured by any download 
 manager to automatically execute it when a movie or video finishes.
 
-**Latest Release**: [1.2rc3](https://github.com/nicoddemus/ss/releases/tag/1.2.0)
+**Latest Release**: [1.2.0](https://github.com/nicoddemus/ss/releases/tag/1.2.0)
 
 [![badge](https://pypip.in/d/ss/badge.png)](https://crate.io/packages/ss) [![ci](https://secure.travis-ci.org/nicoddemus/ss.png?branch=master)](https://travis-ci.org/nicoddemus/ss)
 
