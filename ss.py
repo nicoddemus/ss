@@ -322,7 +322,7 @@ def main(argv):
                 new_input_filenames.append(input_filename)
         input_filenames = new_input_filenames
 
-    def PrintStatus(text, status):
+    def print_status(text, status):
         spaces = 70 - len(text)
         if spaces < 2:
             spaces = 2
@@ -347,7 +347,7 @@ def main(argv):
         else:
             status = 'No matches found.'
 
-        PrintStatus('- %s' % os.path.basename(movie_filename), status)
+        print_status('- %s' % os.path.basename(movie_filename), status)
 
         if subtitle_url:
             subtitle_filename = obtain_subtitle_filename(movie_filename, config.language, subtitle_ext)
@@ -360,7 +360,7 @@ def main(argv):
     sys.stdout.write('Downloading...\n')
     for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
         download_subtitle(subtitle_url, subtitle_filename)
-        PrintStatus(' - %s' % os.path.basename(subtitle_filename), 'DONE')
+        print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
 #===================================================================================================
 # main entry
