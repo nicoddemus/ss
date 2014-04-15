@@ -108,6 +108,11 @@ def test_obtain_guessit_query():
         'sublanguageid' : 'eng',
     }
 
+    assert obtain_guessit_query('Unknown.mp4', 'eng') == {
+        'query': u'"Unknown"',
+        'sublanguageid': 'eng',
+    }
+
 
 #===================================================================================================
 # test_find_best_subtitles_matches

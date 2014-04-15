@@ -18,25 +18,25 @@ import calculate_hash
 # obtain_guessit_query
 #===================================================================================================
 def obtain_guessit_query(movie_filename, language):
-    guess = guessit.guess_file_info(os.path.basename(movie_filename), 'autodetect')
+    guess = guessit.guess_file_info(os.path.basename(movie_filename), info=['filename'])
 
     def extract_query(guess, parts):
         result = ['"%s"' % guess.get(k) for k in parts if guess.get(k)]
         return ' '.join(result)
 
     result = {}
-
-    if guess['type'] == 'episode':
+    if guess.get('type') == 'episode':
         result['query'] = extract_query(guess, ['series', 'title', 'releaseGroup'])
         if 'season' in guess:
             result['season'] = guess['season']
         if 'episodeNumber' in guess:
             result['episode'] = guess['episodeNumber']
 
-    elif guess['type'] == 'movie':
+    elif guess.get('type') == 'movie':
         result['query'] = extract_query(guess, ['title', 'year'])
     else:
-        result['query'] = movie_filename
+        assert 'guessit returned invalid query:'
+        result['query'] = os.path.basename(movie_filename)
 
     result['sublanguageid'] = language
 
@@ -58,7 +58,7 @@ def obtain_movie_hash_query(movie_filename, language):
 # filter_bad_results
 #===================================================================================================
 def filter_bad_results(search_results, guessit_query):
-# filter out search results with bad season and episode number (if applicable);
+    # filter out search results with bad season and episode number (if applicable);
     # sometimes OpenSubtitles will report search results subtitles that belong
     # to a different episode or season from a tv show; no reason why, but it seems to
     # work well just filtering those out
