@@ -13,7 +13,9 @@ manager to automatically execute it when a movie or video finishes.
 
 **Latest Release**: [1.3](https://github.com/nicoddemus/ss/releases/tag/1.3)
 
-[![badge](https://pypip.in/d/ss/badge.png)](https://crate.io/packages/ss) [![ci](https://secure.travis-ci.org/nicoddemus/ss.png?branch=master)](https://travis-ci.org/nicoddemus/ss)
+[![version](http://img.shields.io/pypi/v/ss.svg)](https://crate.io/packages/ss)
+[![downloads](http://img.shields.io/pypi/dm/ss.svg)](https://crate.io/packages/ss/)
+[![ci](http://img.shields.io/travis/nicoddemus/ss.svg)](https://travis-ci.org/nicoddemus/ss)
 
 ## Requirements ##
 
