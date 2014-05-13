@@ -194,7 +194,8 @@ def test_script_main():
     """
     proc = subprocess.Popen(['ss'], shell=True, stdout=subprocess.PIPE)
     output, _ = proc.communicate()
-    assert proc.returncode == 0
+    # different return codes for windows/linux, weird
+    assert proc.returncode in (0, 1)
     assert 'Usage: ss [options]' in output
 
 if __name__ == '__main__':
