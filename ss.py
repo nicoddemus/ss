@@ -287,7 +287,7 @@ class Configuration(object):
 
 def main(argv):
     parser = optparse.OptionParser(
-        usage='Usage: %prog [options] <file or dir> <file or dir>...',
+        usage='Usage: ss [options] <file or dir> <file or dir>...',
         description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).',
         epilog='If a directory is given, search for subtitles for all movies on it (non-recursively).',
     )

@@ -193,7 +193,7 @@ def test_script_main():
     Ensure that ss is accessible from the command line.
     """
     output = subprocess.check_output('ss -h', shell=True)
-    assert 'Usage: ss.py [options]' in output
+    assert 'Usage: ss [options]' in output
 
 if __name__ == '__main__':
     pytest.main(['', '-s', '-kfind_best_subtitles_matches']) #@UndefinedVariable
