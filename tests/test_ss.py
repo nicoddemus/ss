@@ -196,7 +196,7 @@ def test_script_main():
                             stderr=subprocess.PIPE)
     stdout, stderr = proc.communicate()
     # different return codes for windows/linux, weird
-    assert proc.returncode in (0, 1)
+    assert proc.returncode == 2
     assert stderr == ''
     assert 'Usage: ss [options]' in stdout
 

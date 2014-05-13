@@ -285,7 +285,9 @@ class Configuration(object):
         return not self == other
 
 
-def main(argv):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
     parser = optparse.OptionParser(
         usage='Usage: ss [options] <file or dir> <file or dir>...',
         description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).',
@@ -368,8 +370,7 @@ def main(argv):
 if __name__ == '__main__':
     try:
         import sys
-
-        main(sys.argv)
+        sys.exit(main())
     except:
         import traceback
 
