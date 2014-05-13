@@ -3,5 +3,6 @@ python:
   - "2.6"
   - "2.7"
   - "pypy"
-script: 
+script:
+  - python setup.py develop
   - py.test 

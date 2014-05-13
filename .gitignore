@@ -8,3 +8,4 @@ ss.egg-info/
 __pycache__/
 *.swp
 .cit.yaml
+.env*

@@ -8,7 +8,7 @@ setup(
     version="1.3.1",
     packages=[],
     scripts=['ss.py'],
-    py_modules=['calculate_hash'],
+    py_modules=['ss'],
     install_requires=[x.strip() for x in file('requirements.txt')],
     entry_points={'console_scripts': ['ss = ss:main']},
 

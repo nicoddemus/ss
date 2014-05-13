@@ -10,13 +10,7 @@ import xmlrpclib
 
 import guessit
 
-import calculate_hash
 
-
-
-#===================================================================================================
-# obtain_guessit_query
-#===================================================================================================
 def obtain_guessit_query(movie_filename, language):
     guess = guessit.guess_file_info(os.path.basename(movie_filename), info=['filename'])
 
@@ -43,20 +37,14 @@ def obtain_guessit_query(movie_filename, language):
     return result
 
 
-#===================================================================================================
-# obtain_movie_hash_query
-#===================================================================================================
 def obtain_movie_hash_query(movie_filename, language):
     return {
-        'moviehash': calculate_hash.CalculateHashForFile(movie_filename),
+        'moviehash': calculate_hash_for_file(movie_filename),
         'moviebytesize': str(os.path.getsize(movie_filename)),
         'sublanguageid': language,
     }
 
 
-#===================================================================================================
-# filter_bad_results
-#===================================================================================================
 def filter_bad_results(search_results, guessit_query):
     # filter out search results with bad season and episode number (if applicable);
     # sometimes OpenSubtitles will report search results subtitles that belong
@@ -69,9 +57,6 @@ def filter_bad_results(search_results, guessit_query):
     return search_results
 
 
-#===================================================================================================
-# query_open_subtitles
-#===================================================================================================
 def query_open_subtitles(movie_filenames, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = xmlrpclib.Server(uri, verbose=0, allow_none=True, use_datetime=True)
@@ -100,9 +85,6 @@ def query_open_subtitles(movie_filenames, language):
         server.LogOut(token)
 
 
-#===================================================================================================
-# find_subtitles
-#===================================================================================================
 def find_subtitles(movie_filenames, language):
     all_search_results = query_open_subtitles(movie_filenames, language)
 
@@ -115,9 +97,6 @@ def find_subtitles(movie_filenames, language):
             yield movie_filename, None, None
 
 
-#===================================================================================================
-# obtain_subtitle_filename
-#===================================================================================================
 def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
     dirname = os.path.dirname(movie_filename)
     basename = os.path.splitext(os.path.basename(movie_filename))[0]
@@ -138,9 +117,6 @@ def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
     return os.path.join(dirname, '%s.%s.%s%s' % (basename, language, 'ss', subtitle_ext))
 
 
-#===================================================================================================
-# download_subtitle
-#===================================================================================================
 def download_subtitle(subtitle_url, subtitle_filename):
     # first download it and save to a temp dir
     urlfile = urllib.urlopen(subtitle_url)
@@ -169,9 +145,6 @@ def download_subtitle(subtitle_url, subtitle_filename):
         shutil.rmtree(tempdir)
 
 
-#===================================================================================================
-# find_movie_files
-#===================================================================================================
 def find_movie_files(input_names, recursive=False):
     extensions = set(['.avi', '.mp4', '.mpg', '.mkv'])
     returned = set()
@@ -195,9 +168,6 @@ def find_movie_files(input_names, recursive=False):
                         yield x
 
 
-#===================================================================================================
-# has_subtitle
-#===================================================================================================
 def has_subtitle(filename):
     # list of subtitle formats obtained from opensubtitles' advanced search page.
     formats = ['.sub', '.srt', '.ssa', '.smi', '.mpl']
@@ -209,9 +179,6 @@ def has_subtitle(filename):
     return False
 
 
-#===================================================================================================
-# change_configuration
-#===================================================================================================
 def change_configuration(params, filename):
     config = load_configuration(filename)
     config.set_config_from_lines(params)
@@ -223,9 +190,6 @@ def change_configuration(params, filename):
     return config
 
 
-#===================================================================================================
-# load_configuration
-#===================================================================================================
 def load_configuration(filename):
     if os.path.isfile(filename):
         with file(filename) as f:
@@ -238,9 +202,48 @@ def load_configuration(filename):
     return config
 
 
-#===================================================================================================
-# Configuration
-#===================================================================================================
+def calculate_hash_for_file(name):
+    '''
+    Calculates the hash for the given filename.
+
+    Algorithm from: http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
+
+    @param name: str
+        Path to the file
+
+    @return: str
+        The calculated hash code, as an hex string.
+    '''
+    longlongformat = 'q'  # long long
+    bytesize = struct.calcsize(longlongformat)
+
+    f = open(name, "rb")
+
+    filesize = os.path.getsize(name)
+    hash = filesize
+
+    if filesize < 65536 * 2:
+        return "SizeError"
+
+    for x in range(65536/bytesize):
+        buffer = f.read(bytesize)
+        (l_value,)= struct.unpack(longlongformat, buffer)
+        hash += l_value
+        hash = hash & 0xFFFFFFFFFFFFFFFF #to remain as 64bit number
+
+
+    f.seek(max(0,filesize-65536),0)
+    for x in range(65536/bytesize):
+        buffer = f.read(bytesize)
+        (l_value,)= struct.unpack(longlongformat, buffer)
+        hash += l_value
+        hash = hash & 0xFFFFFFFFFFFFFFFF
+
+    f.close()
+    returnedhash =  "%016x" % hash
+    return returnedhash
+
+
 class Configuration(object):
     def __init__(self, language='eng', recursive=False, skip=False):
         self.language = language
@@ -282,9 +285,6 @@ class Configuration(object):
         return not self == other
 
 
-#===================================================================================================
-# main
-#===================================================================================================
 def main(argv):
     parser = optparse.OptionParser(
         usage='Usage: %prog [options] <file or dir> <file or dir>...',

@@ -6,9 +6,6 @@ from ss import find_movie_files, query_open_subtitles, find_subtitles, change_co
 import pytest
 
 
-#===================================================================================================
-# test_find_movie_files
-#===================================================================================================
 def test_find_movie_files(tmpdir):
     tmpdir.join('video.avi').ensure()
     tmpdir.join('video.mpg').ensure()
@@ -29,9 +26,6 @@ def test_find_movie_files(tmpdir):
     ]
 
 
-#==================================================================================================
-# test_has_subtitles
-#==================================================================================================
 def test_has_subtitles(tmpdir):
     assert not has_subtitle(str(tmpdir.join('video.avi').ensure()))
 
@@ -39,14 +33,11 @@ def test_has_subtitles(tmpdir):
     assert has_subtitle(str(tmpdir.join('video.avi').ensure()))
 
 
-#===================================================================================================
-# test_query_open_subtitles
-#===================================================================================================
 def test_query_open_subtitles(tmpdir):
     filename1 = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
     filename2 = tmpdir.join('Project.X.2012.DVDRip.XviD-AMIABLE.avi').ensure()
 
-    with nested(patch('xmlrpclib.Server'), patch('calculate_hash.CalculateHashForFile')) as (rpc_mock, hash_mock):
+    with nested(patch('xmlrpclib.Server'), patch('ss.calculate_hash_for_file')) as (rpc_mock, hash_mock):
         hash_mock.return_value = '13ab'
         rpc_mock.return_value = server = MagicMock(name='MockServer')
         server.LogIn.return_value = dict(token='TOKEN')
@@ -68,9 +59,6 @@ def test_query_open_subtitles(tmpdir):
         }
 
 
-#===================================================================================================
-# test_obtain_guessit_query
-#===================================================================================================
 def test_obtain_guessit_query():
     assert obtain_guessit_query('Drive (2011) BDRip XviD-COCAIN.avi', 'eng') == {
         'query': '"Drive" "2011"',
@@ -114,14 +102,11 @@ def test_obtain_guessit_query():
     }
 
 
-#===================================================================================================
-# test_find_best_subtitles_matches
-#===================================================================================================
 def test_find_best_subtitles_matches(tmpdir):
 
     movie_filename = str(tmpdir.join('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
 
-    with nested(patch('xmlrpclib.Server'), patch('calculate_hash.CalculateHashForFile')) as (rpc_mock, hash_mock):
+    with nested(patch('xmlrpclib.Server'), patch('ss.calculate_hash_for_file')) as (rpc_mock, hash_mock):
         hash_mock.return_value = '13ab'
         rpc_mock.return_value = server = MagicMock(name='MockServer')
         server.LogIn.return_value = dict(token='TOKEN')
@@ -179,9 +164,6 @@ def test_find_best_subtitles_matches(tmpdir):
         assert results == [expected_result]
 
 
-#===================================================================================================
-# test_change_configuration
-#===================================================================================================
 def test_change_configuration(tmpdir):
     filename = str(tmpdir.join('ss.conf'))
     assert change_configuration([], filename) == Configuration('eng', 0, 0)
@@ -191,9 +173,6 @@ def test_change_configuration(tmpdir):
     assert change_configuration(['skip=yes'], filename) == Configuration('us', 0, 1)
 
 
-#===================================================================================================
-# test_load_configuration
-#===================================================================================================
 def test_load_configuration(tmpdir):
     assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('eng', 0, 0)
 
@@ -207,8 +186,5 @@ def test_load_configuration(tmpdir):
 
     assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('br', 1, 1)
 
-#===================================================================================================
-# main    
-#===================================================================================================
 if __name__ == '__main__':
     pytest.main(['', '-s', '-kfind_best_subtitles_matches']) #@UndefinedVariable
