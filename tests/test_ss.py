@@ -192,7 +192,9 @@ def test_script_main():
     """
     Ensure that ss is accessible from the command line.
     """
-    output = subprocess.check_output('ss -h', shell=True)
+    proc = subprocess.Popen(['ss', '-h'], shell=True, stdout=subprocess.PIPE)
+    assert proc.wait() == 0
+    output = proc.stdout.read()
     assert 'Usage: ss [options]' in output
 
 if __name__ == '__main__':
