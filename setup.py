@@ -10,7 +10,7 @@ setup(
     scripts=['ss.py'],
     py_modules=['ss'],
     install_requires=[x.strip() for x in file('requirements.txt')],
-    entry_points={'console_scripts': ['ss = ss:main']},
+    entry_points={'console_scripts': ['ss = ss:Main']},
 
     # metadata for upload to PyPI
     author="nicoddemus@gmail.com",

@@ -1,6 +1,7 @@
 from __future__ import with_statement
 from contextlib import nested
 from mock import patch, MagicMock, call
+import subprocess
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
     Configuration, has_subtitle, obtain_guessit_query
 import pytest
@@ -185,6 +186,14 @@ def test_load_configuration(tmpdir):
     f.close()
 
     assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('br', 1, 1)
+
+
+def test_script_main():
+    """
+    Ensure that ss is accessible from the command line.
+    """
+    output = subprocess.check_output('ss -h', shell=True)
+    assert 'Usage: ss.py [options]' in output
 
 if __name__ == '__main__':
     pytest.main(['', '-s', '-kfind_best_subtitles_matches']) #@UndefinedVariable
