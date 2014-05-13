@@ -192,11 +192,13 @@ def test_script_main():
     """
     Ensure that ss is accessible from the command line.
     """
-    proc = subprocess.Popen(['ss'], shell=True, stdout=subprocess.PIPE)
-    output, _ = proc.communicate()
+    proc = subprocess.Popen(['ss'], shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    stdout, stderr = proc.communicate()
     # different return codes for windows/linux, weird
     assert proc.returncode in (0, 1)
-    assert 'Usage: ss [options]' in output
+    assert stderr == ''
+    assert 'Usage: ss [options]' in stdout
 
 if __name__ == '__main__':
     pytest.main(['', '-s', '-kfind_best_subtitles_matches']) #@UndefinedVariable
