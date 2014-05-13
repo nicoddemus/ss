@@ -10,7 +10,7 @@ setup(
     scripts=['ss.py'],
     py_modules=['calculate_hash'],
     install_requires=[x.strip() for x in file('requirements.txt')],
-    entry_points={'console_scripts': ['ss = ss:Main']},
+    entry_points={'console_scripts': ['ss = ss:main']},
 
     # metadata for upload to PyPI
     author="nicoddemus@gmail.com",
