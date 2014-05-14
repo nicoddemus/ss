@@ -11,7 +11,7 @@ One advantage is that it can automatically search for all videos inside a direct
 easy to download subtitles for TV shows packs. Also, it can usually be configured by any download 
 manager to automatically execute it when a movie or video finishes.
 
-**Latest Release**: [1.3.1](https://github.com/nicoddemus/ss/releases/tag/1.3.1)
+**Latest Release**: [1.4](https://github.com/nicoddemus/ss/releases/tag/1.4)
 
 [![version](http://img.shields.io/pypi/v/ss.svg)](https://crate.io/packages/ss)
 [![downloads](http://img.shields.io/pypi/dm/ss.svg)](https://crate.io/packages/ss/)
@@ -19,7 +19,7 @@ manager to automatically execute it when a movie or video finishes.
 
 ## Requirements ##
 
-Python 2.6, 2.7 or PyPy.
+Python 2.6, 2.7, 3.3, 3.4 or PyPy.
 Also uses the [guessit](https://github.com/wackou/guessit) package.
 
 ## Install ##
