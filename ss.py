@@ -1,22 +1,29 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import gzip
 import optparse
 import os
 import shutil
+import struct
 import tempfile
 import time
-import urllib
+import sys
 
 import guessit
+import math
+
+if sys.version_info[0] == 3:
+    from urllib.request import urlopen
+else:
+    from urllib import urlopen
 
 
-def get_xml_rpc_proxy(uri):
+def get_xml_rpc_proxy(uri, *args, **kwargs):
     if sys.version_info[0] == 3:
         from xmlrpc import client
-        return client.ServerProxy(uri)
+        return client.ServerProxy(uri, *args, **kwargs)
     else:
         import xmlrpclib
-        return xmlrpclib.Server(uri)
+        return xmlrpclib.Server(uri, *args, **kwargs)
 
 
 def obtain_guessit_query(movie_filename, language):
@@ -127,7 +134,7 @@ def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
 
 def download_subtitle(subtitle_url, subtitle_filename):
     # first download it and save to a temp dir
-    urlfile = urllib.urlopen(subtitle_url)
+    urlfile = urlopen(subtitle_url)
     try:
         gzip_subtitle_contents = urlfile.read()
     finally:
@@ -142,7 +149,7 @@ def download_subtitle(subtitle_url, subtitle_filename):
 
         f = gzip.GzipFile(tempfilename, 'r')
         try:
-            subtitle_contents = f.read()
+            subtitle_contents = f.read().decode('utf-8')
         finally:
             f.close()
 
@@ -233,7 +240,7 @@ def calculate_hash_for_file(name):
     if filesize < 65536 * 2:
         return "SizeError"
 
-    for x in range(65536/bytesize):
+    for x in range(65536//bytesize):
         buffer = f.read(bytesize)
         (l_value,)= struct.unpack(longlongformat, buffer)
         hash += l_value
@@ -241,7 +248,7 @@ def calculate_hash_for_file(name):
 
 
     f.seek(max(0,filesize-65536),0)
-    for x in range(65536/bytesize):
+    for x in range(65536//bytesize):
         buffer = f.read(bytesize)
         (l_value,)= struct.unpack(longlongformat, buffer)
         hash += l_value
@@ -377,12 +384,11 @@ def main(argv=None):
 #===================================================================================================
 if __name__ == '__main__':
     try:
-        import sys
         sys.exit(main())
     except:
         import traceback
 
-        with file(__file__ + '.log', 'a+') as log_file:
+        with open(__file__ + '.log', 'a+') as log_file:
             log_file.write('ERROR ' + ('=' * 80) + '\n')
             log_file.write('Date: %s' % time.strftime('%c'))
             log_file.write('args: ' + repr(sys.argv))
