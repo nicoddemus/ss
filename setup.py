@@ -5,7 +5,7 @@ long_description = ''
 
 setup(
     name="ss",
-    version="1.4",
+    version="1.4.1",
     packages=[],
     scripts=['ss.py'],
     py_modules=['ss'],
