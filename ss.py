@@ -1,4 +1,4 @@
-from __future__ import with_statement
+from __future__ import print_function
 import gzip
 import optparse
 import os
@@ -6,9 +6,17 @@ import shutil
 import tempfile
 import time
 import urllib
-import xmlrpclib
 
 import guessit
+
+
+def get_xml_rpc_proxy(uri):
+    if sys.version_info[0] == 3:
+        from xmlrpc import client
+        return client.ServerProxy(uri)
+    else:
+        import xmlrpclib
+        return xmlrpclib.Server(uri)
 
 
 def obtain_guessit_query(movie_filename, language):
@@ -59,7 +67,7 @@ def filter_bad_results(search_results, guessit_query):
 
 def query_open_subtitles(movie_filenames, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
-    server = xmlrpclib.Server(uri, verbose=0, allow_none=True, use_datetime=True)
+    server = get_xml_rpc_proxy(uri, verbose=0, allow_none=True, use_datetime=True)
     login_info = server.LogIn('', '', 'en', 'OS Test User Agent')
     token = login_info['token']
 
@@ -129,7 +137,7 @@ def download_subtitle(subtitle_url, subtitle_filename):
     try:
         basename = subtitle_url.split('/')[-1]
         tempfilename = os.path.join(tempdir, basename)
-        with file(tempfilename, 'wb') as f:
+        with open(tempfilename, 'wb') as f:
             f.write(gzip_subtitle_contents)
 
         f = gzip.GzipFile(tempfilename, 'r')
@@ -139,7 +147,7 @@ def download_subtitle(subtitle_url, subtitle_filename):
             f.close()
 
         # copy it over the new filename
-        with file(subtitle_filename, 'w') as f:
+        with open(subtitle_filename, 'w') as f:
             f.write(subtitle_contents)
     finally:
         shutil.rmtree(tempdir)
@@ -183,7 +191,7 @@ def change_configuration(params, filename):
     config = load_configuration(filename)
     config.set_config_from_lines(params)
 
-    with file(filename, 'w') as f:
+    with open(filename, 'w') as f:
         for line in config.get_lines():
             f.write(line + '\n')
 
@@ -192,7 +200,7 @@ def change_configuration(params, filename):
 
 def load_configuration(filename):
     if os.path.isfile(filename):
-        with file(filename) as f:
+        with open(filename) as f:
             lines = f.readlines()
     else:
         lines = []
@@ -302,9 +310,9 @@ def main(argv=None):
     config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
     if options.config:
         config = change_configuration(args, config_filename)
-        print 'Config file at:', config_filename
+        print('Config file at: ', config_filename)
         for line in config.get_lines():
-            print line
+            print(line)
         return 0
     else:
         config = load_configuration(config_filename)
@@ -333,7 +341,7 @@ def main(argv=None):
 
     sys.stdout.write('Language: %s\n' % config.language)
     if config.skip and skipped_filenames:
-        print 'Skipping %d files that already have subtitles.' % len(skipped_filenames)
+        print('Skipping %d files that already have subtitles.' % len(skipped_filenames))
 
     if not input_filenames:
         return 1
