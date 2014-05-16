@@ -1,12 +1,16 @@
 from __future__ import with_statement
 from contextlib import closing
 from gzip import GzipFile
-from mock import patch, MagicMock, call
 import os
+
 import subprocess
+
+import pytest
+
+from mock import patch, MagicMock, call
+
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
     Configuration, has_subtitle, obtain_guessit_query, download_subtitle
-import pytest
 
 
 def test_find_movie_files(tmpdir):

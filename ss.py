@@ -10,7 +10,7 @@ import time
 import sys
 
 import guessit
-import math
+
 
 if sys.version_info[0] == 3:
     from urllib.request import urlopen
