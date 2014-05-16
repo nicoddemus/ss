@@ -1,8 +1,11 @@
 from __future__ import with_statement
+from contextlib import closing
+from gzip import GzipFile
 from mock import patch, MagicMock, call
+import os
 import subprocess
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle, obtain_guessit_query
+    Configuration, has_subtitle, obtain_guessit_query, download_subtitle
 import pytest
 
 
@@ -200,6 +203,30 @@ def test_script_main():
     assert proc.returncode == 2
     assert stderr == b''
     assert b'Usage: ss [options]' in stdout
+
+
+def test_download_subtitle(tmpdir):
+    url = 'http://server.com/foo.gz'
+    subtitle_filename = str(tmpdir / 'subtitle.srt')
+
+    # write binary contents to ensure that we are not trying to encode/decode
+    # subtitles (see issue #20)
+    sub_contents = b'\xff' * 10
+
+    gzip_filename = str(tmpdir / 'sub.gz')
+    with closing(GzipFile(gzip_filename, 'wb')) as f:
+        f.write(sub_contents)
+
+    with patch('ss.urlopen') as urlopen_mock:
+        urlopen_mock.return_value = open(gzip_filename, 'rb')
+        download_subtitle(url, subtitle_filename)
+
+        urlopen_mock.assert_called_once_with(url)
+
+        assert os.path.isfile(subtitle_filename)
+        with open(subtitle_filename, 'rb') as f:
+            assert f.read() == sub_contents
+
 
 if __name__ == '__main__':
     pytest.main()
