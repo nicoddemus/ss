@@ -10,7 +10,7 @@ import pytest
 from mock import patch, MagicMock, call
 
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle, obtain_guessit_query, download_subtitle
+    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file
 
 
 def test_find_movie_files(tmpdir):
@@ -236,6 +236,20 @@ def test_download_subtitle(tmpdir):
         assert os.path.isfile(subtitle_filename)
         with open(subtitle_filename, 'rb') as f:
             assert f.read() == sub_contents
+
+
+def test_calculate_hash_for_file(tmpdir):
+    # we don't actually test the algorithm since we copied from the
+    # reference implementation, we just call it with dummy data that we know
+    # the resulting hash to ensure the algorithm works across all python
+    # versions
+    filename = str(tmpdir / u'foo.x')
+    data = b'\x08' * (250 * 1024) + b'\xff' * (250 * 1024)
+    with open(filename, 'wb') as f:
+        f.write(data)
+
+    assert calculate_hash_for_file(filename) == '010101010108b000'
+
 
 
 if __name__ == '__main__':

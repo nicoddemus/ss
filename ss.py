@@ -243,7 +243,7 @@ def calculate_hash_for_file(name):
         hash = hash & 0xFFFFFFFFFFFFFFFF
 
     f.close()
-    returnedhash =  "%016x" % hash
+    returnedhash = "%016x" % hash
     return returnedhash
 
 
