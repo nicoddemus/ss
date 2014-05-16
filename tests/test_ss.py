@@ -10,7 +10,7 @@ import pytest
 from mock import patch, MagicMock, call
 
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle, obtain_guessit_query, download_subtitle
+    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file
 
 
 def test_find_movie_files(tmpdir):
@@ -44,14 +44,20 @@ def test_query_open_subtitles(tmpdir):
     filename1 = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
     filename2 = tmpdir.join('Project.X.2012.DVDRip.XviD-AMIABLE.avi').ensure()
 
-    with patch('ss.get_xml_rpc_proxy') as rpc_mock:
-        with patch('ss.calculate_hash_for_file') as hash_mock:
+    with patch('ss.ServerProxy', autospec=True) as rpc_mock:
+        with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
             hash_mock.return_value = '13ab'
             rpc_mock.return_value = server = MagicMock(name='MockServer')
             server.LogIn.return_value = dict(token='TOKEN')
             server.SearchSubtitles.return_value = dict(data={'SubFileName' : 'movie.srt'})
 
             search_results = query_open_subtitles([str(filename1), str(filename2)], 'eng')
+            rpc_mock.assert_called_once_with(
+                'http://api.opensubtitles.org/xml-rpc',
+                use_datetime=True,
+                allow_none=True,
+                verbose=0,
+            )
             server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
             expected_calls = [
                  call('TOKEN', [dict(query=u'"Drive" "2011"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
@@ -114,8 +120,8 @@ def test_find_best_subtitles_matches(tmpdir):
 
     movie_filename = str(tmpdir.join('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
 
-    with patch('ss.get_xml_rpc_proxy') as rpc_mock:
-        with patch('ss.calculate_hash_for_file') as hash_mock:
+    with patch('ss.ServerProxy', autospec=True) as rpc_mock:
+        with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
             hash_mock.return_value = '13ab'
             rpc_mock.return_value = server = MagicMock(name='MockServer')
             server.LogIn.return_value = dict(token='TOKEN')
@@ -230,6 +236,20 @@ def test_download_subtitle(tmpdir):
         assert os.path.isfile(subtitle_filename)
         with open(subtitle_filename, 'rb') as f:
             assert f.read() == sub_contents
+
+
+def test_calculate_hash_for_file(tmpdir):
+    # we don't actually test the algorithm since we copied from the
+    # reference implementation, we just call it with dummy data that we know
+    # the resulting hash to ensure the algorithm works across all python
+    # versions
+    filename = str(tmpdir / u'foo.x')
+    data = b'\x08' * (250 * 1024) + b'\xff' * (250 * 1024)
+    with open(filename, 'wb') as f:
+        f.write(data)
+
+    assert calculate_hash_for_file(filename) == '010101010108b000'
+
 
 
 if __name__ == '__main__':
