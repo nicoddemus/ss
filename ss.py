@@ -14,17 +14,10 @@ import guessit
 
 if sys.version_info[0] == 3:
     from urllib.request import urlopen
+    from xmlrpc.client import ServerProxy
 else:
     from urllib import urlopen
-
-
-def get_xml_rpc_proxy(uri, *args, **kwargs):
-    if sys.version_info[0] == 3:
-        from xmlrpc import client
-        return client.ServerProxy(uri, *args, **kwargs)
-    else:
-        import xmlrpclib
-        return xmlrpclib.Server(uri, *args, **kwargs)
+    from xmlrpclib import Server as ServerProxy
 
 
 def obtain_guessit_query(movie_filename, language):
@@ -75,7 +68,7 @@ def filter_bad_results(search_results, guessit_query):
 
 def query_open_subtitles(movie_filenames, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
-    server = get_xml_rpc_proxy(uri, verbose=0, allow_none=True, use_datetime=True)
+    server = ServerProxy(uri, verbose=0, allow_none=True, use_datetime=True)
     login_info = server.LogIn('', '', 'en', 'OS Test User Agent')
     token = login_info['token']
 

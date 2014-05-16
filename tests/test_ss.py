@@ -44,14 +44,20 @@ def test_query_open_subtitles(tmpdir):
     filename1 = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
     filename2 = tmpdir.join('Project.X.2012.DVDRip.XviD-AMIABLE.avi').ensure()
 
-    with patch('ss.get_xml_rpc_proxy') as rpc_mock:
-        with patch('ss.calculate_hash_for_file') as hash_mock:
+    with patch('ss.ServerProxy', autospec=True) as rpc_mock:
+        with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
             hash_mock.return_value = '13ab'
             rpc_mock.return_value = server = MagicMock(name='MockServer')
             server.LogIn.return_value = dict(token='TOKEN')
             server.SearchSubtitles.return_value = dict(data={'SubFileName' : 'movie.srt'})
 
             search_results = query_open_subtitles([str(filename1), str(filename2)], 'eng')
+            rpc_mock.assert_called_once_with(
+                'http://api.opensubtitles.org/xml-rpc',
+                use_datetime=True,
+                allow_none=True,
+                verbose=0,
+            )
             server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
             expected_calls = [
                  call('TOKEN', [dict(query=u'"Drive" "2011"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
@@ -114,8 +120,8 @@ def test_find_best_subtitles_matches(tmpdir):
 
     movie_filename = str(tmpdir.join('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
 
-    with patch('ss.get_xml_rpc_proxy') as rpc_mock:
-        with patch('ss.calculate_hash_for_file') as hash_mock:
+    with patch('ss.ServerProxy', autospec=True) as rpc_mock:
+        with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
             hash_mock.return_value = '13ab'
             rpc_mock.return_value = server = MagicMock(name='MockServer')
             server.LogIn.return_value = dict(token='TOKEN')
