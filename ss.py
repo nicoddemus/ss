@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+from contextlib import closing
 import gzip
 import optparse
 import os
@@ -134,11 +135,8 @@ def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
 
 def download_subtitle(subtitle_url, subtitle_filename):
     # first download it and save to a temp dir
-    urlfile = urlopen(subtitle_url)
-    try:
+    with closing(urlopen(subtitle_url)) as urlfile:
         gzip_subtitle_contents = urlfile.read()
-    finally:
-        urlfile.close()
 
     tempdir = tempfile.mkdtemp()
     try:
@@ -147,14 +145,11 @@ def download_subtitle(subtitle_url, subtitle_filename):
         with open(tempfilename, 'wb') as f:
             f.write(gzip_subtitle_contents)
 
-        f = gzip.GzipFile(tempfilename, 'r')
-        try:
-            subtitle_contents = f.read().decode('utf-8')
-        finally:
-            f.close()
+        with closing(gzip.GzipFile(tempfilename, 'rb')) as f:
+            subtitle_contents = f.read()
 
         # copy it over the new filename
-        with open(subtitle_filename, 'w') as f:
+        with open(subtitle_filename, 'wb') as f:
             f.write(subtitle_contents)
     finally:
         shutil.rmtree(tempdir)
