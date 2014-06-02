@@ -287,7 +287,7 @@ class Configuration(object):
     def __ne__(self, other):
         return not self == other
 
-__version__ = '1.4.1'
+__version__ = '1.4.2'
 
 def main(argv=None):
     if argv is None:
