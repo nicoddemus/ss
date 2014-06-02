@@ -287,17 +287,23 @@ class Configuration(object):
     def __ne__(self, other):
         return not self == other
 
+__version__ = '1.4.1'
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     parser = optparse.OptionParser(
         usage='Usage: ss [options] <file or dir> <file or dir>...',
-        description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).',
+        description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).\n\nVersion: %s' % __version__,
         epilog='If a directory is given, search for subtitles for all movies on it (non-recursively).',
     )
     parser.add_option('-c', '--config', help='configuration mode.', action='store_true')
+    parser.add_option('--version', help='displayes version and exit.', action='store_true')
     options, args = parser.parse_args(args=argv)
+    if options.version:
+        print('ss %s' % __version__)
+        return 0
+
     if not options.config and len(args) < 2:
         parser.print_help()
         return 2
