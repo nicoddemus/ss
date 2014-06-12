@@ -179,13 +179,18 @@ def test_find_best_subtitles_matches(tmpdir):
             assert results == [expected_result]
 
 
-def test_change_configuration(tmpdir):
+@pytest.mark.parametrize(
+    ['params', 'expected_config'],
+    [
+        ([], Configuration('eng', recursive=0, skip=0)),
+        (['language=br'], Configuration('br', recursive=0, skip=0)),
+        (['language=us', 'recursive=1'], Configuration('us', recursive=1, skip=0)),
+        (['skip=yes'], Configuration('eng', recursive=0, skip=1)),
+    ]
+)
+def test_change_configuration(tmpdir, params, expected_config):
     filename = str(tmpdir.join('ss.conf'))
-    assert change_configuration([], filename) == Configuration('eng', 0, 0)
-    assert change_configuration(['language=br'], filename) == Configuration('br', 0, 0)
-    assert change_configuration(['language=us', 'recursive=1'], filename) == Configuration('us', 1, 0)
-    assert change_configuration(['foo=bar', 'recursive=0'], filename) == Configuration('us', 0, 0)
-    assert change_configuration(['skip=yes'], filename) == Configuration('us', 0, 1)
+    assert change_configuration(params, filename) == expected_config
 
 
 def test_load_configuration(tmpdir):

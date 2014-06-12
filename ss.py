@@ -248,6 +248,7 @@ def calculate_hash_for_file(name):
 
 
 class Configuration(object):
+
     def __init__(self, language='eng', recursive=False, skip=False):
         self.language = language
         self.recursive = recursive
@@ -286,6 +287,11 @@ class Configuration(object):
 
     def __ne__(self, other):
         return not self == other
+
+    def __repr__(self):
+        return 'Configuration(language="{}", recursive={}, skip={})'.format(
+            self.language, self.recursive, self.skip,
+        )
 
 __version__ = '1.4.2'
 
