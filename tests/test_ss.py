@@ -259,11 +259,19 @@ def test_calculate_hash_for_file(tmpdir):
 
 
 def test_embed_mkv():
-    with patch('subprocess.check_output') as mocked_call:
-        mocked_call.return_value = 'ok'
+    with patch('subprocess.Popen') as mocked_popen:
+        mocked_popen.return_value = popen = MagicMock()
+        popen.communicate.return_value = ('', '')
+        popen.poll.return_value = 0
+
         assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
         params = u'mkvmerge --output foo.mkv foo.avi --language 0:eng foo.srt'.split()
-        mocked_call.assert_called_once_with(params, shell=True, stderr=subprocess.STDOUT)
+        mocked_popen.assert_called_once_with(params, shell=True,
+                                             stderr=subprocess.STDOUT,
+                                             stdout=subprocess.PIPE)
+        popen.communicate.assert_called_once()
+        popen.poll.assert_called_once()
 
-        mocked_call.side_effect = subprocess.CalledProcessError(2, 'mk', 'failed')
-        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed')
+        popen.communicate.return_value = ('failed error', '')
+        popen.poll.return_value = 2
+        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')

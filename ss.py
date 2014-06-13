@@ -296,9 +296,8 @@ class Configuration(object):
         return not self == other
 
     def __repr__(self):
-        return 'Configuration(language="{}", recursive={}, skip={}, mkv={})'.format(
-            self.language, self.recursive, self.skip, self.mkv,
-        )
+        return 'Configuration(language="%s", recursive=%s, skip=%s, mkv=%s)' % \
+               (self.language, self.recursive, self.skip, self.mkv)
 
 __version__ = '1.4.2'
 
@@ -407,7 +406,7 @@ def main(argv=None):
             header = print('_' * 80)
             print(header)
             for movie_filename, output in failures:
-                print(':{}:'.format(movie_filename))
+                print(':{%s}:' % movie_filename)
                 print(output)
 
 
@@ -415,19 +414,20 @@ def main(argv=None):
 
 def embed_mkv(movie_filename, subtitle_filename, language):
     output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
-    try:
-        params = [
-            u'mkvmerge',
-            u'--output', output_filename,
-            movie_filename,
-            u'--language', u'0:{}'.format(language),
-            subtitle_filename,
-        ]
-        subprocess.check_output(params, shell=True, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        return False, e.output
-    else:
+    params = [
+        u'mkvmerge',
+        u'--output', output_filename,
+        movie_filename,
+        u'--language', u'0:{0}'.format(language),
+        subtitle_filename,
+    ]
+    popen = subprocess.Popen(params, shell=True, stderr=subprocess.STDOUT,
+                             stdout=subprocess.PIPE)
+    output, _ = popen.communicate()
+    if popen.poll() == 0:
         return True, ''
+    else:
+        return False, output
 
 
 if __name__ == '__main__':
