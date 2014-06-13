@@ -187,6 +187,7 @@ def test_find_best_subtitles_matches(tmpdir):
         (['language=br'], Configuration('br', recursive=0, skip=0)),
         (['language=us', 'recursive=1'], Configuration('us', recursive=1, skip=0)),
         (['skip=yes'], Configuration('eng', recursive=0, skip=1)),
+        (['mkv=yes'], Configuration('eng', mkv=True)),
     ]
 )
 def test_change_configuration(tmpdir, params, expected_config):

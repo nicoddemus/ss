@@ -250,10 +250,11 @@ def calculate_hash_for_file(name):
 
 class Configuration(object):
 
-    def __init__(self, language='eng', recursive=False, skip=False):
+    def __init__(self, language='eng', recursive=False, skip=False, mkv=False):
         self.language = language
         self.recursive = recursive
         self.skip = skip
+        self.mkv = mkv
 
 
     def set_config_from_lines(self, strings):
@@ -270,6 +271,8 @@ class Configuration(object):
                     self.recursive = parse_bool(value)
                 elif name == 'skip':
                     self.skip = parse_bool(value)
+                elif name == 'mkv':
+                    self.mkv = parse_bool(value)
 
 
     def get_lines(self):
@@ -281,17 +284,19 @@ class Configuration(object):
 
 
     def __eq__(self, other):
-        return self.language == other.language and \
-               self.recursive == other.recursive and \
-               self.skip == other.skip
+        return \
+            self.language == other.language and \
+            self.recursive == other.recursive and \
+            self.skip == other.skip and \
+            self.mkv == other.mkv
 
 
     def __ne__(self, other):
         return not self == other
 
     def __repr__(self):
-        return 'Configuration(language="{}", recursive={}, skip={})'.format(
-            self.language, self.recursive, self.skip,
+        return 'Configuration(language="{}", recursive={}, skip={}, mkv={})'.format(
+            self.language, self.recursive, self.skip, self.mkv,
         )
 
 __version__ = '1.4.2'
