@@ -280,6 +280,7 @@ class Configuration(object):
             'language=%s' % self.language,
             'recursive=%s' % self.recursive,
             'skip=%s' % self.skip,
+            'mkv=%s' % self.mkv,
         ]
 
 
@@ -384,6 +385,32 @@ def main(argv=None):
     for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
         download_subtitle(subtitle_url, subtitle_filename)
         print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
+
+    if config.mkv:
+        sys.stdout.write('\n')
+        sys.stdout.write('Embeding MKV...\n')
+        failures = []  # list of (movie_filename, output)
+        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
+            if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
+                status, output = embed_mkv(movie_filename, subtitle_filename, config.language)
+                output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+                if not status:
+                    failures.append((movie_filename, output))
+                status = 'DONE' if status else 'ERROR'
+                print_status(' - %s' % os.path.basename(output_filename),
+                             status)
+            else:
+                print_status(' - %s' % os.path.basename(movie_filename),
+                             'skipped')
+
+        if failures:
+            header = print('_' * 80)
+            print(header)
+            for movie_filename, output in failures:
+                print(':{}:'.format(movie_filename))
+                print(output)
+
+
 
 
 def embed_mkv(movie_filename, subtitle_filename, language):
