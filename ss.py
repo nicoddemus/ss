@@ -10,6 +10,7 @@ import time
 import sys
 
 import guessit
+import subprocess
 
 
 if sys.version_info[0] == 3:
@@ -248,10 +249,12 @@ def calculate_hash_for_file(name):
 
 
 class Configuration(object):
-    def __init__(self, language='eng', recursive=False, skip=False):
+
+    def __init__(self, language='eng', recursive=False, skip=False, mkv=False):
         self.language = language
         self.recursive = recursive
         self.skip = skip
+        self.mkv = mkv
 
 
     def set_config_from_lines(self, strings):
@@ -268,6 +271,8 @@ class Configuration(object):
                     self.recursive = parse_bool(value)
                 elif name == 'skip':
                     self.skip = parse_bool(value)
+                elif name == 'mkv':
+                    self.mkv = parse_bool(value)
 
 
     def get_lines(self):
@@ -275,17 +280,24 @@ class Configuration(object):
             'language=%s' % self.language,
             'recursive=%s' % self.recursive,
             'skip=%s' % self.skip,
+            'mkv=%s' % self.mkv,
         ]
 
 
     def __eq__(self, other):
-        return self.language == other.language and \
-               self.recursive == other.recursive and \
-               self.skip == other.skip
+        return \
+            self.language == other.language and \
+            self.recursive == other.recursive and \
+            self.skip == other.skip and \
+            self.mkv == other.mkv
 
 
     def __ne__(self, other):
         return not self == other
+
+    def __repr__(self):
+        return 'Configuration(language="%s", recursive=%s, skip=%s, mkv=%s)' % \
+               (self.language, self.recursive, self.skip, self.mkv)
 
 __version__ = '1.4.2'
 
@@ -373,9 +385,51 @@ def main(argv=None):
         download_subtitle(subtitle_url, subtitle_filename)
         print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
-#===================================================================================================
-# main entry
-#===================================================================================================
+    if config.mkv:
+        sys.stdout.write('\n')
+        sys.stdout.write('Embeding MKV...\n')
+        failures = []  # list of (movie_filename, output)
+        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
+            if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
+                status, output = embed_mkv(movie_filename, subtitle_filename, config.language)
+                output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+                if not status:
+                    failures.append((movie_filename, output))
+                status = 'DONE' if status else 'ERROR'
+                print_status(' - %s' % os.path.basename(output_filename),
+                             status)
+            else:
+                print_status(' - %s' % os.path.basename(movie_filename),
+                             'skipped')
+
+        if failures:
+            header = print('_' * 80)
+            print(header)
+            for movie_filename, output in failures:
+                print(':{%s}:' % movie_filename)
+                print(output)
+
+
+
+
+def embed_mkv(movie_filename, subtitle_filename, language):
+    output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+    params = [
+        u'mkvmerge',
+        u'--output', output_filename,
+        movie_filename,
+        u'--language', u'0:{0}'.format(language),
+        subtitle_filename,
+    ]
+    popen = subprocess.Popen(params, shell=True, stderr=subprocess.STDOUT,
+                             stdout=subprocess.PIPE)
+    output, _ = popen.communicate()
+    if popen.poll() == 0:
+        return True, ''
+    else:
+        return False, output
+
+
 if __name__ == '__main__':
     try:
         sys.exit(main())

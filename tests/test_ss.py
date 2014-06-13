@@ -10,7 +10,8 @@ import pytest
 from mock import patch, MagicMock, call
 
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file
+    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file, \
+    embed_mkv
 
 
 def test_find_movie_files(tmpdir):
@@ -179,13 +180,19 @@ def test_find_best_subtitles_matches(tmpdir):
             assert results == [expected_result]
 
 
-def test_change_configuration(tmpdir):
+@pytest.mark.parametrize(
+    ['params', 'expected_config'],
+    [
+        ([], Configuration('eng', recursive=0, skip=0)),
+        (['language=br'], Configuration('br', recursive=0, skip=0)),
+        (['language=us', 'recursive=1'], Configuration('us', recursive=1, skip=0)),
+        (['skip=yes'], Configuration('eng', recursive=0, skip=1)),
+        (['mkv=yes'], Configuration('eng', mkv=True)),
+    ]
+)
+def test_change_configuration(tmpdir, params, expected_config):
     filename = str(tmpdir.join('ss.conf'))
-    assert change_configuration([], filename) == Configuration('eng', 0, 0)
-    assert change_configuration(['language=br'], filename) == Configuration('br', 0, 0)
-    assert change_configuration(['language=us', 'recursive=1'], filename) == Configuration('us', 1, 0)
-    assert change_configuration(['foo=bar', 'recursive=0'], filename) == Configuration('us', 0, 0)
-    assert change_configuration(['skip=yes'], filename) == Configuration('us', 0, 1)
+    assert change_configuration(params, filename) == expected_config
 
 
 def test_load_configuration(tmpdir):
@@ -251,6 +258,20 @@ def test_calculate_hash_for_file(tmpdir):
     assert calculate_hash_for_file(filename) == '010101010108b000'
 
 
+def test_embed_mkv():
+    with patch('subprocess.Popen') as mocked_popen:
+        mocked_popen.return_value = popen = MagicMock()
+        popen.communicate.return_value = ('', '')
+        popen.poll.return_value = 0
 
-if __name__ == '__main__':
-    pytest.main()
+        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
+        params = u'mkvmerge --output foo.mkv foo.avi --language 0:eng foo.srt'.split()
+        mocked_popen.assert_called_once_with(params, shell=True,
+                                             stderr=subprocess.STDOUT,
+                                             stdout=subprocess.PIPE)
+        popen.communicate.assert_called_once()
+        popen.poll.assert_called_once()
+
+        popen.communicate.return_value = ('failed error', '')
+        popen.poll.return_value = 2
+        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
