@@ -387,7 +387,7 @@ def main(argv=None):
 
     if config.mkv:
         sys.stdout.write('\n')
-        sys.stdout.write('Embeding MKV...\n')
+        sys.stdout.write('Embedding MKV...\n')
         failures = []  # list of (movie_filename, output)
         for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
             if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
