@@ -65,6 +65,7 @@ the language to Brazillian Portuguese and enable searching for files recursively
     language=pob
     recursive=1
     skip=1
+    mkv=0
 ```
 
 The following options are available:
@@ -77,6 +78,10 @@ The following options are available:
 * `skip`: if movies that already have subtitles should be skipped. If this is 0 and a movie 
   already has subtitles, `ss` won't overwrite the current subtitle, but generate a file using
   the language as suffix; if that also already exists, it will use an additional *"ss"* prefix.
+
+* `mkv`: if True, it will automatically create a [mkv](http://www.matroska.org/)
+  file with video and subtitles embeded. Requires [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
+  to be available in the `$PATH`.
 
 
 ## Support ##
