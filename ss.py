@@ -10,6 +10,7 @@ import time
 import sys
 
 import guessit
+import subprocess
 
 
 if sys.version_info[0] == 3:
@@ -379,9 +380,24 @@ def main(argv=None):
         download_subtitle(subtitle_url, subtitle_filename)
         print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
-#===================================================================================================
-# main entry
-#===================================================================================================
+
+def embed_mkv(movie_filename, subtitle_filename, language):
+    output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+    try:
+        params = [
+            u'mkvmerge',
+            u'--output', output_filename,
+            movie_filename,
+            u'--language', u'0:{}'.format(language),
+            subtitle_filename,
+        ]
+        subprocess.check_output(params, shell=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        return False, e.output
+    else:
+        return True, ''
+
+
 if __name__ == '__main__':
     try:
         sys.exit(main())

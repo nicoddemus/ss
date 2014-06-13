@@ -10,7 +10,8 @@ import pytest
 from mock import patch, MagicMock, call
 
 from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file
+    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file, \
+    embed_mkv
 
 
 def test_find_movie_files(tmpdir):
@@ -256,6 +257,12 @@ def test_calculate_hash_for_file(tmpdir):
     assert calculate_hash_for_file(filename) == '010101010108b000'
 
 
+def test_embed_mkv():
+    with patch('subprocess.check_output') as mocked_call:
+        mocked_call.return_value = 'ok'
+        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
+        params = u'mkvmerge --output foo.mkv foo.avi --language 0:eng foo.srt'.split()
+        mocked_call.assert_called_once_with(params, shell=True, stderr=subprocess.STDOUT)
 
-if __name__ == '__main__':
-    pytest.main()
+        mocked_call.side_effect = subprocess.CalledProcessError(2, 'mk', 'failed')
+        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed')
