@@ -1,5 +1,5 @@
 from __future__ import with_statement
-from contextlib import closing
+from contextlib import closing, contextmanager
 from gzip import GzipFile
 import os
 
@@ -9,9 +9,7 @@ import pytest
 
 from mock import patch, MagicMock, call
 
-from ss import find_movie_files, query_open_subtitles, find_subtitles, change_configuration, load_configuration,\
-    Configuration, has_subtitle, obtain_guessit_query, download_subtitle, calculate_hash_for_file, \
-    embed_mkv
+import ss
 
 
 def test_find_movie_files(tmpdir):
@@ -20,13 +18,13 @@ def test_find_movie_files(tmpdir):
     tmpdir.join('video.srt').ensure()
     tmpdir.join('sub', 'video.mp4').ensure()
 
-    obtained = sorted(find_movie_files([str(tmpdir.join('video.mpg')), str(tmpdir)]))
+    obtained = sorted(ss.find_movie_files([str(tmpdir.join('video.mpg')), str(tmpdir)]))
     assert obtained == [
         tmpdir.join('video.avi'),
         tmpdir.join('video.mpg'),
     ]
 
-    obtained = sorted(find_movie_files([str(tmpdir)], recursive=True))
+    obtained = sorted(ss.find_movie_files([str(tmpdir)], recursive=True))
     assert obtained == [
         tmpdir.join('sub', 'video.mp4'),
         tmpdir.join('video.avi'),
@@ -35,10 +33,10 @@ def test_find_movie_files(tmpdir):
 
 
 def test_has_subtitles(tmpdir):
-    assert not has_subtitle(str(tmpdir.join('video.avi').ensure()))
+    assert not ss.has_subtitle(str(tmpdir.join('video.avi').ensure()))
 
     tmpdir.join('video.srt').ensure()
-    assert has_subtitle(str(tmpdir.join('video.avi').ensure()))
+    assert ss.has_subtitle(str(tmpdir.join('video.avi').ensure()))
 
 
 def test_query_open_subtitles(tmpdir):
@@ -52,7 +50,7 @@ def test_query_open_subtitles(tmpdir):
             server.LogIn.return_value = dict(token='TOKEN')
             server.SearchSubtitles.return_value = dict(data={'SubFileName' : 'movie.srt'})
 
-            search_results = query_open_subtitles([str(filename1), str(filename2)], 'eng')
+            search_results = ss.query_open_subtitles([str(filename1), str(filename2)], 'eng')
             rpc_mock.assert_called_once_with(
                 'http://api.opensubtitles.org/xml-rpc',
                 use_datetime=True,
@@ -75,43 +73,43 @@ def test_query_open_subtitles(tmpdir):
 
 
 def test_obtain_guessit_query():
-    assert obtain_guessit_query('Drive (2011) BDRip XviD-COCAIN.avi', 'eng') == {
+    assert ss.obtain_guessit_query('Drive (2011) BDRip XviD-COCAIN.avi', 'eng') == {
         'query': '"Drive" "2011"',
         'sublanguageid' : 'eng',
     }
 
-    assert obtain_guessit_query('Project.X.2012.DVDRip.XviD-AMIABLE.avi', 'eng') == {
+    assert ss.obtain_guessit_query('Project.X.2012.DVDRip.XviD-AMIABLE.avi', 'eng') == {
         'query': '"Project X" "2012"',
         'sublanguageid' : 'eng',
     }
 
-    assert obtain_guessit_query('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'eng') == {
+    assert ss.obtain_guessit_query('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'eng') == {
         'query': u'"Parks and Recreation" "LOL"',
         'episode': 13,
         'season': 5,
         'sublanguageid' : 'eng',
     }
 
-    assert obtain_guessit_query('Modern.Family.S05E01.HDTV.x264-LOL.mp4', 'eng') == {
+    assert ss.obtain_guessit_query('Modern.Family.S05E01.HDTV.x264-LOL.mp4', 'eng') == {
         'query': u'"Modern Family" "LOL"',
         'episode': 1,
         'season': 5,
         'sublanguageid' : 'eng',
     }
 
-    assert obtain_guessit_query('The.IT.Crowd.S04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
+    assert ss.obtain_guessit_query('The.IT.Crowd.S04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
         'query': u'"The IT Crowd" "The Last Byte" "TLA"',
         'season': 4,
         'sublanguageid' : 'eng',
     }
 
-    assert obtain_guessit_query('The.IT.Crowd.E04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
+    assert ss.obtain_guessit_query('The.IT.Crowd.E04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
         'query': u'"The IT Crowd" "The Last Byte" "TLA"',
         'episode': 4,
         'sublanguageid' : 'eng',
     }
 
-    assert obtain_guessit_query('Unknown.mp4', 'eng') == {
+    assert ss.obtain_guessit_query('Unknown.mp4', 'eng') == {
         'query': u'"Unknown"',
         'sublanguageid': 'eng',
     }
@@ -176,27 +174,27 @@ def test_find_best_subtitles_matches(tmpdir):
             }
 
             expected_result = (movie_filename, 'http://sub1.srt', '.srt' )
-            results = list(find_subtitles([movie_filename], 'en'))
+            results = list(ss.find_subtitles([movie_filename], 'en'))
             assert results == [expected_result]
 
 
 @pytest.mark.parametrize(
     ['params', 'expected_config'],
     [
-        ([], Configuration('eng', recursive=0, skip=0)),
-        (['language=br'], Configuration('br', recursive=0, skip=0)),
-        (['language=us', 'recursive=1'], Configuration('us', recursive=1, skip=0)),
-        (['skip=yes'], Configuration('eng', recursive=0, skip=1)),
-        (['mkv=yes'], Configuration('eng', mkv=True)),
+        ([], ss.Configuration('eng', recursive=0, skip=0)),
+        (['language=br'], ss.Configuration('br', recursive=0, skip=0)),
+        (['language=us', 'recursive=1'], ss.Configuration('us', recursive=1, skip=0)),
+        (['skip=yes'], ss.Configuration('eng', recursive=0, skip=1)),
+        (['mkv=yes'], ss.Configuration('eng', mkv=True)),
     ]
 )
 def test_change_configuration(tmpdir, params, expected_config):
     filename = str(tmpdir.join('ss.conf'))
-    assert change_configuration(params, filename) == expected_config
+    assert ss.change_configuration(params, filename) == expected_config
 
 
 def test_load_configuration(tmpdir):
-    assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('eng', 0, 0)
+    assert ss.load_configuration(str(tmpdir.join('ss.conf'))) == ss.Configuration('eng', 0, 0)
 
     f = tmpdir.join('ss.conf').open('w')
     f.write('language=br\n')
@@ -206,7 +204,7 @@ def test_load_configuration(tmpdir):
     f.write('foobar=4\n')
     f.close()
 
-    assert load_configuration(str(tmpdir.join('ss.conf'))) == Configuration('br', 1, 1)
+    assert ss.load_configuration(str(tmpdir.join('ss.conf'))) == ss.Configuration('br', 1, 1)
 
 
 def test_script_main():
@@ -236,7 +234,7 @@ def test_download_subtitle(tmpdir):
 
     with patch('ss.urlopen') as urlopen_mock:
         urlopen_mock.return_value = open(gzip_filename, 'rb')
-        download_subtitle(url, subtitle_filename)
+        ss.download_subtitle(url, subtitle_filename)
 
         urlopen_mock.assert_called_once_with(url)
 
@@ -255,7 +253,7 @@ def test_calculate_hash_for_file(tmpdir):
     with open(filename, 'wb') as f:
         f.write(data)
 
-    assert calculate_hash_for_file(filename) == '010101010108b000'
+    assert ss.calculate_hash_for_file(filename) == '010101010108b000'
 
 
 def test_embed_mkv():
@@ -264,7 +262,7 @@ def test_embed_mkv():
         popen.communicate.return_value = ('', '')
         popen.poll.return_value = 0
 
-        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
+        assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
         params = u'mkvmerge --output foo.mkv foo.avi --language 0:eng foo.srt'.split()
         mocked_popen.assert_called_once_with(params, shell=True,
                                              stderr=subprocess.STDOUT,
@@ -274,4 +272,32 @@ def test_embed_mkv():
 
         popen.communicate.return_value = ('failed error', '')
         popen.poll.return_value = 2
-        assert embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
+        assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
+
+
+def test_main(tmpdir):
+    movie = tmpdir.join('serieS01E01.avi')
+    movie.ensure()
+
+    @contextmanager
+    def patch_functions():
+        patchers = [
+            patch('ss.query_open_subtitles'),
+            patch('ss.download_subtitle'),
+            patch('ss.load_configuration'),
+        ]
+        yield [x.start() for x in patchers]
+        for p in patchers:
+            p.stop()
+
+    with patch_functions() as (mocked_query, mocked_download, mocked_config):
+        mocked_query.return_value = {
+            str(movie):
+                [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}],
+        }
+        mocked_download.side_effect = lambda url, name: open(name, 'w').close()
+        mocked_config.return_value = ss.Configuration(mkv=False)
+        assert ss.main(['ss', str(movie)]) == 0
+        mocked_download.assert_called_with('fake_url', str(tmpdir.join('serieS01E01.srt')))
+        assert tmpdir.join('serieS01E01.srt').isfile()
+

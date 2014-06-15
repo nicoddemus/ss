@@ -345,6 +345,10 @@ def main(argv=None):
                 new_input_filenames.append(input_filename)
         input_filenames = new_input_filenames
 
+        if skipped_filenames:
+            print('Skipping %d files that already have subtitles.' % len(
+                skipped_filenames))
+
     def print_status(text, status):
         spaces = 70 - len(text)
         if spaces < 2:
@@ -353,8 +357,6 @@ def main(argv=None):
 
 
     sys.stdout.write('Language: %s\n' % config.language)
-    if config.skip and skipped_filenames:
-        print('Skipping %d files that already have subtitles.' % len(skipped_filenames))
 
     if not input_filenames:
         return 1
@@ -409,7 +411,7 @@ def main(argv=None):
                 print(':{%s}:' % movie_filename)
                 print(output)
 
-
+    return 0
 
 
 def embed_mkv(movie_filename, subtitle_filename, language):
