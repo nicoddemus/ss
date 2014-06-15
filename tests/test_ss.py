@@ -1,10 +1,15 @@
 from __future__ import with_statement
-from contextlib import closing, contextmanager
+from contextlib import closing
 from gzip import GzipFile
 import os
+import sys
 
 import subprocess
-from StringIO import StringIO
+
+if sys.version_info[0] == 3:
+    from io import StringIO
+else:
+    from StringIO import StringIO
 
 import pytest
 
@@ -283,7 +288,7 @@ def test_normal(tmpdir, runner):
     runner.add_existing_movie('serieS01E01.avi')
     runner.add_available_subtitle('serieS01E01.srt')
     assert runner.run('serieS01E01.avi') == 0
-    assert os.listdir(str(tmpdir)) == ['serieS01E01.avi', 'serieS01E01.srt']
+    runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
     assert 'Downloading' in runner.output
 
 
@@ -292,7 +297,7 @@ def test_skipping(tmpdir, runner):
     (tmpdir / 'serieS01E01.srt').ensure()
     runner.configuration.skip = True
     assert runner.run('serieS01E01.avi') == 1
-    assert os.listdir(str(tmpdir)) == ['serieS01E01.avi', 'serieS01E01.srt']
+    runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
     assert 'Skipping 1 files that already have subtitles.' in runner.output
 
 
@@ -342,7 +347,6 @@ class _Runner(object):
         for p in self._patchers.values():
             p.stop()
 
-
     def _mock_download(self, url, name):
         if os.path.basename(name) in self._available_subtitles:
             open(name, 'w').close()
@@ -354,5 +358,8 @@ class _Runner(object):
                 result[movie_filename] = [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}]
 
         return result
+
+    def check_files(self, *expected):
+        assert set(os.listdir(str(self._tmpdir))) == set(expected)
 
 
