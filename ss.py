@@ -301,7 +301,7 @@ class Configuration(object):
 
 __version__ = '1.4.2'
 
-def main(argv=None):
+def main(argv=None, stream=sys.stdout):
     if argv is None:
         argv = sys.argv
     parser = optparse.OptionParser(
@@ -313,7 +313,7 @@ def main(argv=None):
     parser.add_option('--version', help='displayes version and exit.', action='store_true')
     options, args = parser.parse_args(args=argv)
     if options.version:
-        print('ss %s' % __version__)
+        print('ss %s' % __version__, file=stream)
         return 0
 
     if not options.config and len(args) < 2:
@@ -323,16 +323,16 @@ def main(argv=None):
     config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
     if options.config:
         config = change_configuration(args, config_filename)
-        print('Config file at: ', config_filename)
+        print('Config file at: ', config_filename, file=stream)
         for line in config.get_lines():
-            print(line)
+            print(line, file=stream)
         return 0
     else:
         config = load_configuration(config_filename)
 
     input_filenames = list(find_movie_files(args[1:], recursive=config.recursive))
     if not input_filenames:
-        sys.stdout.write('No files to search subtitles for. Aborting.\n')
+        print('No files to search subtitles for. Aborting.', file=stream)
         return 1
 
     skipped_filenames = []
@@ -347,22 +347,22 @@ def main(argv=None):
 
         if skipped_filenames:
             print('Skipping %d files that already have subtitles.' % len(
-                skipped_filenames))
+                skipped_filenames), file=stream)
 
     def print_status(text, status):
         spaces = 70 - len(text)
         if spaces < 2:
             spaces = 2
-        sys.stdout.write('%s%s%s\n' % (text, ' ' * spaces, status))
+        print('%s%s%s' % (text, ' ' * spaces, status), file=stream)
 
 
-    sys.stdout.write('Language: %s\n' % config.language)
+    print('Language: %s' % config.language, file=stream)
 
     if not input_filenames:
         return 1
 
-    sys.stdout.write('Querying OpenSubtitles.org for %d file(s)...\n' % len(input_filenames))
-    sys.stdout.write('\n')
+    print('Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames), file=stream)
+    print('', file=stream)
 
     matches = []
     for (movie_filename, subtitle_url, subtitle_ext) in sorted(
@@ -381,15 +381,15 @@ def main(argv=None):
     if not matches:
         return 0
 
-    sys.stdout.write('\n')
-    sys.stdout.write('Downloading...\n')
+    print('', file=stream)
+    print('Downloading...', file=stream)
     for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
         download_subtitle(subtitle_url, subtitle_filename)
         print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
     if config.mkv:
-        sys.stdout.write('\n')
-        sys.stdout.write('Embedding MKV...\n')
+        print('', file=stream)
+        print('Embedding MKV...', file=stream)
         failures = []  # list of (movie_filename, output)
         for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
             if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
@@ -405,11 +405,11 @@ def main(argv=None):
                              'skipped')
 
         if failures:
-            header = print('_' * 80)
-            print(header)
+            header = print('_' * 80, file=stream)
+            print(header, file=stream)
             for movie_filename, output in failures:
-                print(':{%s}:' % movie_filename)
-                print(output)
+                print(':{%s}:' % movie_filename, file=stream)
+                print(output, file=stream)
 
     return 0
 

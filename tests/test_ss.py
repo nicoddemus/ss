@@ -4,10 +4,11 @@ from gzip import GzipFile
 import os
 
 import subprocess
+from StringIO import StringIO
 
 import pytest
 
-from mock import patch, MagicMock, call
+from mock import patch, MagicMock, call, DEFAULT
 
 import ss
 
@@ -275,29 +276,83 @@ def test_embed_mkv():
         assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
 
 
-def test_main(tmpdir):
-    movie = tmpdir.join('serieS01E01.avi')
-    movie.ensure()
+def test_normal(tmpdir, runner):
+    """
+    :type runner: _Runner
+    """
+    runner.add_existing_movie('serieS01E01.avi')
+    runner.add_available_subtitle('serieS01E01.srt')
+    assert runner.run('serieS01E01.avi') == 0
+    assert os.listdir(str(tmpdir)) == ['serieS01E01.avi', 'serieS01E01.srt']
+    assert 'Downloading' in runner.output
 
-    @contextmanager
-    def patch_functions():
-        patchers = [
-            patch('ss.query_open_subtitles'),
-            patch('ss.download_subtitle'),
-            patch('ss.load_configuration'),
-        ]
-        yield [x.start() for x in patchers]
-        for p in patchers:
+
+def test_skipping(tmpdir, runner):
+    runner.add_existing_movie('serieS01E01.avi')
+    (tmpdir / 'serieS01E01.srt').ensure()
+    runner.configuration.skip = True
+    assert runner.run('serieS01E01.avi') == 1
+    assert os.listdir(str(tmpdir)) == ['serieS01E01.avi', 'serieS01E01.srt']
+    assert 'Skipping 1 files that already have subtitles.' in runner.output
+
+
+
+@pytest.yield_fixture
+def runner(tmpdir):
+    r = _Runner(tmpdir)
+    r.start()
+    yield r
+    r.stop()
+
+
+class _Runner(object):
+
+    def __init__(self, tmpdir):
+        self._tmpdir = tmpdir
+        self._movies = set()
+        self._available_subtitles = set()
+        self._patchers = dict()
+        self.configuration = ss.Configuration(mkv=False)
+        self.output = None
+
+    def add_existing_movie(self, name):
+        self._movies.add(self._tmpdir.join(name).ensure())
+
+    def add_available_subtitle(self, name):
+        self._available_subtitles.add(name)
+
+    def run(self, *args):
+        stream = StringIO()
+        result = ss.main(['ss'] + [str(self._tmpdir / x) for x in args], stream=stream)
+        self.output = stream.getvalue()
+        return result
+
+    def start(self):
+        self._patchers = patch.multiple(
+            ss,
+            query_open_subtitles=DEFAULT,
+            download_subtitle=DEFAULT,
+            load_configuration=DEFAULT,
+        ).start()
+        self._patchers['query_open_subtitles'].side_effect = self._mock_query
+        self._patchers['download_subtitle'].side_effect = self._mock_download
+        self._patchers['load_configuration'].return_value = self.configuration
+
+    def stop(self):
+        for p in self._patchers.values():
             p.stop()
 
-    with patch_functions() as (mocked_query, mocked_download, mocked_config):
-        mocked_query.return_value = {
-            str(movie):
-                [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}],
-        }
-        mocked_download.side_effect = lambda url, name: open(name, 'w').close()
-        mocked_config.return_value = ss.Configuration(mkv=False)
-        assert ss.main(['ss', str(movie)]) == 0
-        mocked_download.assert_called_with('fake_url', str(tmpdir.join('serieS01E01.srt')))
-        assert tmpdir.join('serieS01E01.srt').isfile()
+
+    def _mock_download(self, url, name):
+        if os.path.basename(name) in self._available_subtitles:
+            open(name, 'w').close()
+
+    def _mock_query(self, movie_filenames, language):
+        result = {}
+        for movie_filename in movie_filenames:
+            if movie_filename in self._movies:
+                result[movie_filename] = [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}]
+
+        return result
+
 
