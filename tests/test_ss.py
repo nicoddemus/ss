@@ -281,7 +281,7 @@ def test_embed_mkv():
         assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
 
 
-def test_normal(tmpdir, runner):
+def test_normal(runner):
     """
     :type runner: _Runner
     """
@@ -293,6 +293,9 @@ def test_normal(tmpdir, runner):
 
 
 def test_skipping(tmpdir, runner):
+    """
+    :type runner: _Runner
+    """
     runner.add_existing_movie('serieS01E01.avi')
     (tmpdir / 'serieS01E01.srt').ensure()
     runner.configuration.skip = True
@@ -300,6 +303,24 @@ def test_skipping(tmpdir, runner):
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
     assert 'Skipping 1 files that already have subtitles.' in runner.output
 
+
+def test_mkv(tmpdir, runner):
+    """
+    :type runner: _Runner
+    """
+    runner.add_existing_movie('serieS01E01.avi')
+    runner.add_available_subtitle('serieS01E01.srt')
+    runner.configuration.mkv = True
+    runner.configuration.language = 'pb'
+    assert runner.run('serieS01E01.avi') == 0
+    ss.embed_mkv.assert_called_once_with(
+            str(tmpdir / 'serieS01E01.avi'),
+            str(tmpdir / 'serieS01E01.srt'),
+            runner.configuration.language,
+        )
+
+    assert 'Embedding MKV...' in runner.output
+    runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
 
 
 @pytest.yield_fixture
@@ -320,11 +341,14 @@ class _Runner(object):
         self.configuration = ss.Configuration(mkv=False)
         self.output = None
 
+
     def add_existing_movie(self, name):
         self._movies.add(self._tmpdir.join(name).ensure())
 
+
     def add_available_subtitle(self, name):
         self._available_subtitles.add(name)
+
 
     def run(self, *args):
         stream = StringIO()
@@ -332,24 +356,30 @@ class _Runner(object):
         self.output = stream.getvalue()
         return result
 
+
     def start(self):
         self._patchers = patch.multiple(
             ss,
             query_open_subtitles=DEFAULT,
             download_subtitle=DEFAULT,
             load_configuration=DEFAULT,
+            embed_mkv=DEFAULT,
         ).start()
         self._patchers['query_open_subtitles'].side_effect = self._mock_query
         self._patchers['download_subtitle'].side_effect = self._mock_download
         self._patchers['load_configuration'].return_value = self.configuration
+        self._patchers['embed_mkv'].side_effect = self._mock_embed_mkv
+
 
     def stop(self):
         for p in self._patchers.values():
             p.stop()
 
+
     def _mock_download(self, url, name):
         if os.path.basename(name) in self._available_subtitles:
             open(name, 'w').close()
+
 
     def _mock_query(self, movie_filenames, language):
         result = {}
@@ -359,7 +389,19 @@ class _Runner(object):
 
         return result
 
+
+    def _mock_embed_mkv(self, movie_filename, subtitle_filename, language):
+        if not os.path.isfile(movie_filename):
+            return False, '{} not found'.format(movie_filename)
+        if not os.path.isfile(subtitle_filename):
+            return False, '{} not found'.format(subtitle_filename)
+
+        open(os.path.splitext(movie_filename)[0] + '.mkv', 'w').close()
+        return True, ''
+
+
     def check_files(self, *expected):
         assert set(os.listdir(str(self._tmpdir))) == set(expected)
+
 
 
