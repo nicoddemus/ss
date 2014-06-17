@@ -6,6 +6,7 @@ import sys
 
 import subprocess
 
+
 if sys.version_info[0] == 3:
     from io import StringIO
 else:
@@ -184,33 +185,22 @@ def test_find_best_subtitles_matches(tmpdir):
             assert results == [expected_result]
 
 
-@pytest.mark.parametrize(
-    ['params', 'expected_config'],
-    [
-        ([], ss.Configuration('eng', recursive=0, skip=0)),
-        (['language=br'], ss.Configuration('br', recursive=0, skip=0)),
-        (['language=us', 'recursive=1'], ss.Configuration('us', recursive=1, skip=0)),
-        (['skip=yes'], ss.Configuration('eng', recursive=0, skip=1)),
-        (['mkv=yes'], ss.Configuration('eng', mkv=True)),
-    ]
-)
-def test_change_configuration(tmpdir, params, expected_config):
-    filename = str(tmpdir.join('ss.conf'))
-    assert ss.change_configuration(params, filename) == expected_config
-
-
 def test_load_configuration(tmpdir):
-    assert ss.load_configuration(str(tmpdir.join('ss.conf'))) == ss.Configuration('eng', 0, 0)
+    config_filename = str(tmpdir.join('ss.conf'))
+    assert ss.load_configuration(config_filename) == ss.Configuration()
 
-    f = tmpdir.join('ss.conf').open('w')
-    f.write('language=br\n')
-    f.write('recursive=yes\n')
-    f.write('skip=yes\n')
-    f.write('foo=bar\n')
-    f.write('foobar=4\n')
-    f.close()
+    with open(config_filename, 'w') as f:
+        lines = [
+            '[ss]',
+            'language = br',
+            'recursive = yes',
+            'skip = on',
+            'mkv = 1',
+        ]
+        f.write('\n'.join(lines))
 
-    assert ss.load_configuration(str(tmpdir.join('ss.conf'))) == ss.Configuration('br', 1, 1)
+    loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
+    assert loaded == ss.Configuration('br', recursive=True, skip=True, mkv=True)
 
 
 def test_script_main():
@@ -220,7 +210,6 @@ def test_script_main():
     proc = subprocess.Popen(['ss'], shell=True, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     stdout, stderr = proc.communicate()
-    # different return codes for windows/linux, weird
     assert proc.returncode == 2
     assert stderr == b''
     assert b'Usage: ss [options]' in stdout
@@ -323,6 +312,17 @@ def test_mkv(tmpdir, runner):
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
 
 
+def test_verbose(runner):
+    """
+    :type runner: _Runner
+    """
+    assert runner.run('--verbose') == 2
+    assert 'language = eng' in runner.output
+    assert 'recursive = False' in runner.output
+    assert 'skip = False' in runner.output
+    assert 'mkv = False' in runner.output
+
+
 @pytest.yield_fixture
 def runner(tmpdir):
     r = _Runner(tmpdir)
@@ -352,7 +352,8 @@ class _Runner(object):
 
     def run(self, *args):
         stream = StringIO()
-        result = ss.main(['ss'] + [str(self._tmpdir / x) for x in args], stream=stream)
+        args = [str(self._tmpdir / x) if not x.startswith('--') else x for x in args]
+        result = ss.main(['ss'] + args, stream=stream)
         self.output = stream.getvalue()
         return result
 

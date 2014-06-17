@@ -16,9 +16,11 @@ import subprocess
 if sys.version_info[0] == 3:
     from urllib.request import urlopen
     from xmlrpc.client import ServerProxy
+    from configparser import RawConfigParser
 else:
     from urllib import urlopen
     from xmlrpclib import Server as ServerProxy
+    from ConfigParser import RawConfigParser
 
 
 def obtain_guessit_query(movie_filename, language):
@@ -183,7 +185,7 @@ def has_subtitle(filename):
     return False
 
 
-def change_configuration(params, filename):
+def _change_configuration(params, filename):
     config = load_configuration(filename)
     config.set_config_from_lines(params)
 
@@ -195,14 +197,20 @@ def change_configuration(params, filename):
 
 
 def load_configuration(filename):
-    if os.path.isfile(filename):
-        with open(filename) as f:
-            lines = f.readlines()
-    else:
-        lines = []
+    p = RawConfigParser()
+    p.add_section('ss')
+    p.read(filename)
+
+    def read_if_defined(option, getter):
+        if p.has_option('ss', option):
+            value = getattr(p, getter)('ss', option)
+            setattr(config, option, value)
 
     config = Configuration()
-    config.set_config_from_lines(lines)
+    read_if_defined('language', 'get')
+    read_if_defined('recursive', 'getboolean')
+    read_if_defined('skip', 'getboolean')
+    read_if_defined('mkv', 'getboolean')
     return config
 
 
@@ -256,34 +264,6 @@ class Configuration(object):
         self.skip = skip
         self.mkv = mkv
 
-
-    def set_config_from_lines(self, strings):
-
-        def parse_bool(value):
-            return int(value.lower() in ('1', 'true', 'yes'))
-
-        for line in strings:
-            if '=' in line:
-                name, value = [x.strip() for x in line.split('=', 1)]
-                if name == 'language':
-                    self.language = value
-                elif name == 'recursive':
-                    self.recursive = parse_bool(value)
-                elif name == 'skip':
-                    self.skip = parse_bool(value)
-                elif name == 'mkv':
-                    self.mkv = parse_bool(value)
-
-
-    def get_lines(self):
-        return [
-            'language=%s' % self.language,
-            'recursive=%s' % self.recursive,
-            'skip=%s' % self.skip,
-            'mkv=%s' % self.mkv,
-        ]
-
-
     def __eq__(self, other):
         return \
             self.language == other.language and \
@@ -291,13 +271,21 @@ class Configuration(object):
             self.skip == other.skip and \
             self.mkv == other.mkv
 
-
     def __ne__(self, other):
         return not self == other
 
     def __repr__(self):
         return 'Configuration(language="%s", recursive=%s, skip=%s, mkv=%s)' % \
                (self.language, self.recursive, self.skip, self.mkv)
+
+    def __str__(self):
+        values = [
+            'language = %s' % self.language,
+            'recursive = %s' % self.recursive,
+            'skip = %s' % self.skip,
+            'mkv = %s' % self.mkv,
+        ]
+        return '\n'.join(values)
 
 __version__ = '1.4.2'
 
@@ -309,26 +297,21 @@ def main(argv=None, stream=sys.stdout):
         description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).\n\nVersion: %s' % __version__,
         epilog='If a directory is given, search for subtitles for all movies on it (non-recursively).',
     )
-    parser.add_option('-c', '--config', help='configuration mode.', action='store_true')
-    parser.add_option('--version', help='displayes version and exit.', action='store_true')
+    parser.add_option('-v', '--verbose',
+                      help='always displays configuration and enable verbose mode.',
+                      action='store_true', default=False)
     options, args = parser.parse_args(args=argv)
-    if options.version:
-        print('ss %s' % __version__, file=stream)
-        return 0
-
-    if not options.config and len(args) < 2:
-        parser.print_help()
-        return 2
 
     config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
-    if options.config:
-        config = change_configuration(args, config_filename)
-        print('Config file at: ', config_filename, file=stream)
-        for line in config.get_lines():
-            print(line, file=stream)
-        return 0
-    else:
-        config = load_configuration(config_filename)
+    config = load_configuration(config_filename)
+    if options.verbose:
+        print('Configuration read from {0}'.format(config_filename))
+        print(config, file=stream)
+        print()
+
+    if len(args) < 2:
+        parser.print_help(file=stream)
+        return 2
 
     input_filenames = list(find_movie_files(args[1:], recursive=config.recursive))
     if not input_filenames:
