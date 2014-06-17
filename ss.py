@@ -318,6 +318,13 @@ def main(argv=None, stream=sys.stdout):
         print('No files to search subtitles for. Aborting.', file=stream)
         return 1
 
+    if config.mkv:
+        if not check_mkv():
+            print('mkvmerge not found in PATH.', file=stream)
+            print('Either install mkvtoolnix or disable mkv merging ' +
+                  'in your config.', file=stream)
+            return 4
+
     skipped_filenames = []
     if config.skip:
         new_input_filenames = []
@@ -406,13 +413,40 @@ def embed_mkv(movie_filename, subtitle_filename, language):
         u'--language', u'0:{0}'.format(language),
         subtitle_filename,
     ]
+    try:
+        check_output(params)
+    except subprocess.CalledProcessError as e:
+        return False, e.output
+    else:
+        return True, ''
+
+
+def check_mkv():
+    """
+    Returns True if mkvtoolinx seems to be installed.
+    """
+    try:
+        check_output([u'mkvmerge', u'--version'])
+    except subprocess.CalledProcessError:
+        return False
+    else:
+        return True
+
+
+def check_output(params):
+    """
+    Python 2.6 support: subprocess.check_output from Python 2.7.
+    """
     popen = subprocess.Popen(params, shell=True, stderr=subprocess.STDOUT,
                              stdout=subprocess.PIPE)
+
     output, _ = popen.communicate()
-    if popen.poll() == 0:
-        return True, ''
-    else:
-        return False, output
+    returncode = popen.poll()
+    if returncode != 0:
+        error = subprocess.CalledProcessError(returncode=returncode, cmd=params)
+        error.output = output
+        raise error
+    return output
 
 
 if __name__ == '__main__':
