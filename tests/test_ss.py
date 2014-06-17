@@ -323,6 +323,18 @@ def test_verbose(runner):
     assert 'mkv = False' in runner.output
 
 
+def test_check_mkv(runner):
+    """
+    :type runner: _Runner
+    """
+    runner.add_existing_movie('serieS01E01.avi')
+    runner.configuration.mkv = True
+    ss.check_mkv.return_value = False
+    assert runner.run('serieS01E01.avi') == 4
+    assert 'mkvmerge not found in PATH' in runner.output
+
+
+
 @pytest.yield_fixture
 def runner(tmpdir):
     r = _Runner(tmpdir)
@@ -365,11 +377,13 @@ class _Runner(object):
             download_subtitle=DEFAULT,
             load_configuration=DEFAULT,
             embed_mkv=DEFAULT,
+            check_mkv=DEFAULT,
         ).start()
         self._patchers['query_open_subtitles'].side_effect = self._mock_query
         self._patchers['download_subtitle'].side_effect = self._mock_download
         self._patchers['load_configuration'].return_value = self.configuration
         self._patchers['embed_mkv'].side_effect = self._mock_embed_mkv
+        self._patchers['check_mkv'].return_value = True
 
 
     def stop(self):
