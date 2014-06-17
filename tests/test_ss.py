@@ -5,7 +5,6 @@ import os
 import sys
 
 import subprocess
-import textwrap
 
 
 if sys.version_info[0] == 3:
@@ -191,13 +190,14 @@ def test_load_configuration(tmpdir):
     assert ss.load_configuration(config_filename) == ss.Configuration()
 
     with open(config_filename, 'w') as f:
-        f.write(textwrap.dedent("""
-            [ss]
-            language = br
-            recursive = yes
-            skip = on
-            mkv = 1
-        """))
+        lines = [
+            '[ss]',
+            'language = br',
+            'recursive = yes',
+            'skip = on',
+            'mkv = 1',
+        ]
+        f.write('\n'.join(lines))
 
     loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
     assert loaded == ss.Configuration('br', recursive=True, skip=True, mkv=True)
