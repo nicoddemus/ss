@@ -443,8 +443,9 @@ def check_output(params):
     output, _ = popen.communicate()
     returncode = popen.poll()
     if returncode != 0:
-        raise subprocess.CalledProcessError(returncode=returncode, cmd=params,
-                                            output=output)
+        error = subprocess.CalledProcessError(returncode=returncode, cmd=params)
+        error.output = output
+        raise error
     return output
 
 
