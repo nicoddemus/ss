@@ -285,7 +285,7 @@ class Configuration(object):
             'skip = %s' % self.skip,
             'mkv = %s' % self.mkv,
         ]
-        return 'Configuration:\n' + '\n'.join(values)
+        return '\n'.join(values)
 
 __version__ = '1.4.2'
 
@@ -307,6 +307,7 @@ def main(argv=None, stream=sys.stdout):
     if options.verbose:
         print('Configuration read from {}'.format(config_filename))
         print(config, file=stream)
+        print()
 
     if len(args) < 2:
         parser.print_help(file=stream)

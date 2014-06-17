@@ -56,16 +56,31 @@ search for all video files in that directory:
 
 It will try to find the best match online, and automatically download and rename the subtitles.
 
-To change language and other options, use `--config` (or `-c`). For instance, to change 
-the language to Brazillian Portuguese and enable searching for files recursively, use:
+### Configuration ###
 
+You can see the current configuration by executing `ss` with the `--verbose`
+parameter:
+
+```bash
+] python ss.py --verbose
+Configuration read from ~/.ss.ini
+language = eng
+recursive = False
+skip = True
+mkv = True
+
+Usage: ss [options] <file or dir> <file or dir>...
+...
 ```
 
-    ] python ss.py --config language=pob recursive=1
-    language=pob
-    recursive=1
-    skip=1
-    mkv=0
+Configuration is read from `~/.ss.ini`, which is a standard `ini` file:
+
+```ini
+[ss]
+language=eng
+recursive=yes
+skip=yes
+mkv=False
 ```
 
 The following options are available:
