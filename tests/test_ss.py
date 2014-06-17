@@ -314,10 +314,10 @@ def test_mkv(tmpdir, runner):
     runner.configuration.language = 'pb'
     assert runner.run('serieS01E01.avi') == 0
     ss.embed_mkv.assert_called_once_with(
-            str(tmpdir / 'serieS01E01.avi'),
-            str(tmpdir / 'serieS01E01.srt'),
-            runner.configuration.language,
-        )
+        str(tmpdir / 'serieS01E01.avi'),
+        str(tmpdir / 'serieS01E01.srt'),
+        runner.configuration.language,
+    )
 
     assert 'Embedding MKV...' in runner.output
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
