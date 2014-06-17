@@ -1,5 +1,4 @@
 from __future__ import print_function, division
-from ConfigParser import RawConfigParser
 from contextlib import closing
 import gzip
 import optparse
@@ -17,9 +16,11 @@ import subprocess
 if sys.version_info[0] == 3:
     from urllib.request import urlopen
     from xmlrpc.client import ServerProxy
+    from configparser import RawConfigParser
 else:
     from urllib import urlopen
     from xmlrpclib import Server as ServerProxy
+    from ConfigParser import RawConfigParser
 
 
 def obtain_guessit_query(movie_filename, language):
@@ -277,6 +278,15 @@ class Configuration(object):
         return 'Configuration(language="%s", recursive=%s, skip=%s, mkv=%s)' % \
                (self.language, self.recursive, self.skip, self.mkv)
 
+    def __str__(self):
+        values = [
+            'language = %s' % self.language,
+            'recursive = %s' % self.recursive,
+            'skip = %s' % self.skip,
+            'mkv = %s' % self.mkv,
+        ]
+        return 'Configuration:\n' + '\n'.join(values)
+
 __version__ = '1.4.2'
 
 def main(argv=None, stream=sys.stdout):
@@ -287,19 +297,20 @@ def main(argv=None, stream=sys.stdout):
         description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).\n\nVersion: %s' % __version__,
         epilog='If a directory is given, search for subtitles for all movies on it (non-recursively).',
     )
-    parser.add_option('-c', '--config', help='configuration mode.', action='store_true')
-    parser.add_option('--version', help='displayes version and exit.', action='store_true')
+    parser.add_option('-v', '--verbose',
+                      help='always displays configuration and enable verbose mode.',
+                      action='store_true', default=False)
     options, args = parser.parse_args(args=argv)
-    if options.version:
-        print('ss %s' % __version__, file=stream)
-        return 0
-
-    if not options.config and len(args) < 2:
-        parser.print_help()
-        return 2
 
     config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
     config = load_configuration(config_filename)
+    if options.verbose:
+        print('Configuration read from {}'.format(config_filename))
+        print(config, file=stream)
+
+    if len(args) < 2:
+        parser.print_help(file=stream)
+        return 2
 
     input_filenames = list(find_movie_files(args[1:], recursive=config.recursive))
     if not input_filenames:

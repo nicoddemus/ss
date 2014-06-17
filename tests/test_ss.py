@@ -312,6 +312,17 @@ def test_mkv(tmpdir, runner):
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
 
 
+def test_verbose(runner):
+    """
+    :type runner: _Runner
+    """
+    assert runner.run('--verbose') == 2
+    assert 'language = eng' in runner.output
+    assert 'recursive = False' in runner.output
+    assert 'skip = False' in runner.output
+    assert 'mkv = False' in runner.output
+
+
 @pytest.yield_fixture
 def runner(tmpdir):
     r = _Runner(tmpdir)
@@ -341,7 +352,8 @@ class _Runner(object):
 
     def run(self, *args):
         stream = StringIO()
-        result = ss.main(['ss'] + [str(self._tmpdir / x) for x in args], stream=stream)
+        args = [str(self._tmpdir / x) if not x.startswith('--') else x for x in args]
+        result = ss.main(['ss'] + args, stream=stream)
         self.output = stream.getvalue()
         return result
 
