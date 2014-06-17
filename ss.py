@@ -305,7 +305,7 @@ def main(argv=None, stream=sys.stdout):
     config_filename = os.path.join(os.path.expanduser('~'), '.ss.ini')
     config = load_configuration(config_filename)
     if options.verbose:
-        print('Configuration read from {}'.format(config_filename))
+        print('Configuration read from {0}'.format(config_filename))
         print(config, file=stream)
         print()
 
