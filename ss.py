@@ -58,10 +58,12 @@ def obtain_movie_hash_query(movie_filename, language):
 
 
 def filter_bad_results(search_results, guessit_query):
-    # filter out search results with bad season and episode number (if applicable);
-    # sometimes OpenSubtitles will report search results subtitles that belong
-    # to a different episode or season from a tv show; no reason why, but it seems to
-    # work well just filtering those out
+    """
+    filter out search results with bad season and episode number (if
+    applicable); sometimes OpenSubtitles will report search results subtitles
+    that belong to a different episode or season from a tv show; no reason
+    why, but it seems to work well just filtering those out
+    """
     if 'season' in guessit_query and 'episode' in guessit_query:
         guessit_season_episode = (guessit_query['season'], guessit_query['episode'])
         search_results = [x for x in search_results
@@ -69,44 +71,37 @@ def filter_bad_results(search_results, guessit_query):
     return search_results
 
 
-def query_open_subtitles(movie_filenames, language):
+def query_open_subtitles(movie_filename, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = ServerProxy(uri, verbose=0, allow_none=True, use_datetime=True)
     login_info = server.LogIn('', '', 'en', 'OS Test User Agent')
     token = login_info['token']
 
     try:
-        result = {}
+        guessit_query = obtain_guessit_query(movie_filename, language)
+        search_queries = [
+            guessit_query,
+            obtain_movie_hash_query(movie_filename, language),
+        ]
 
-        for movie_filename in movie_filenames:
-            guessit_query = obtain_guessit_query(movie_filename, language)
-            search_queries = [
-                guessit_query,
-                obtain_movie_hash_query(movie_filename, language),
-            ]
+        response = server.SearchSubtitles(token, search_queries)
+        search_results = response['data']
 
-            response = server.SearchSubtitles(token, search_queries)
-            search_results = response['data']
+        if search_results:
+            search_results = filter_bad_results(search_results, guessit_query)
 
-            if search_results:
-                search_results = filter_bad_results(search_results, guessit_query)
-                result[movie_filename] = search_results
-
-        return result
+        return search_results
     finally:
         server.LogOut(token)
 
 
-def find_subtitles(movie_filenames, language):
-    all_search_results = query_open_subtitles(movie_filenames, language)
-
-    for movie_filename in movie_filenames:
-        search_results = all_search_results.get(movie_filename, [])
-        if search_results:
-            search_result = search_results[0]
-            yield movie_filename, search_result['SubDownloadLink'], '.' + search_result['SubFormat']
-        else:
-            yield movie_filename, None, None
+def find_subtitle(movie_filename, language):
+    search_results = query_open_subtitles(movie_filename, language)
+    if search_results:
+        search_result = search_results[0]
+        return search_result['SubDownloadLink'], '.' + search_result['SubFormat']
+    else:
+        return None, None
 
 
 def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
@@ -183,17 +178,6 @@ def has_subtitle(filename):
             return True
 
     return False
-
-
-def _change_configuration(params, filename):
-    config = load_configuration(filename)
-    config.set_config_from_lines(params)
-
-    with open(filename, 'w') as f:
-        for line in config.get_lines():
-            f.write(line + '\n')
-
-    return config
 
 
 def load_configuration(filename):
@@ -355,8 +339,10 @@ def main(argv=None, stream=sys.stdout):
     print('', file=stream)
 
     matches = []
-    for (movie_filename, subtitle_url, subtitle_ext) in sorted(
-            find_subtitles(input_filenames, language=config.language)):
+    input_filenames.sort()
+    for movie_filename in input_filenames:
+        subtitle_url, subtitle_ext = find_subtitle(movie_filename,
+                                                   language=config.language)
         if subtitle_url:
             status = 'OK'
         else:
@@ -365,8 +351,11 @@ def main(argv=None, stream=sys.stdout):
         print_status('- %s' % os.path.basename(movie_filename), status)
 
         if subtitle_url:
-            subtitle_filename = obtain_subtitle_filename(movie_filename, config.language, subtitle_ext)
-            matches.append((movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
+            subtitle_filename = obtain_subtitle_filename(movie_filename,
+                                                         config.language,
+                                                         subtitle_ext)
+            matches.append(
+                (movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
 
     if not matches:
         return 0
