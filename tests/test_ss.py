@@ -47,36 +47,29 @@ def test_has_subtitles(tmpdir):
 
 
 def test_query_open_subtitles(tmpdir):
-    filename1 = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
-    filename2 = tmpdir.join('Project.X.2012.DVDRip.XviD-AMIABLE.avi').ensure()
+    filename = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
 
     with patch('ss.ServerProxy', autospec=True) as rpc_mock:
         with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
             hash_mock.return_value = '13ab'
             rpc_mock.return_value = server = MagicMock(name='MockServer')
             server.LogIn.return_value = dict(token='TOKEN')
-            server.SearchSubtitles.return_value = dict(data={'SubFileName' : 'movie.srt'})
+            server.SearchSubtitles.return_value = dict(
+                data=[{'SubFileName': 'movie.srt'}])
 
-            search_results = ss.query_open_subtitles([str(filename1), str(filename2)], 'eng')
+            search_results = ss.query_open_subtitles(str(filename), 'eng')
             rpc_mock.assert_called_once_with(
-                'http://api.opensubtitles.org/xml-rpc',
-                use_datetime=True,
-                allow_none=True,
-                verbose=0,
-            )
+                'http://api.opensubtitles.org/xml-rpc', use_datetime=True,
+                allow_none=True, verbose=0)
             server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
             expected_calls = [
                  call('TOKEN', [dict(query=u'"Drive" "2011"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
-                 call('TOKEN', [dict(query=u'"Project X" "2012"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
             ]
 
             server.SearchSubtitles.assert_has_calls(expected_calls)
             server.LogOut.assert_called_once_with('TOKEN')
 
-            assert search_results == {
-                str(filename1) : {'SubFileName' : 'movie.srt'},
-                str(filename2) : {'SubFileName' : 'movie.srt'},
-            }
+            assert search_results == [{'SubFileName': 'movie.srt'}]
 
 
 def test_obtain_guessit_query():
@@ -123,8 +116,8 @@ def test_obtain_guessit_query():
 
 
 def test_find_best_subtitles_matches(tmpdir):
-
-    movie_filename = str(tmpdir.join('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
+    movie_filename = str(
+        (tmpdir / 'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
 
     with patch('ss.ServerProxy', autospec=True) as rpc_mock:
         with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
@@ -133,7 +126,7 @@ def test_find_best_subtitles_matches(tmpdir):
             server.LogIn.return_value = dict(token='TOKEN')
 
             server.SearchSubtitles.return_value = {
-                'data' : [
+                'data': [
                     # OpenSubtitles returned wrong Season: should be skipped
                     dict(
                         MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
@@ -180,9 +173,8 @@ def test_find_best_subtitles_matches(tmpdir):
                 ]
             }
 
-            expected_result = (movie_filename, 'http://sub1.srt', '.srt' )
-            results = list(ss.find_subtitles([movie_filename], 'en'))
-            assert results == [expected_result]
+            result = ss.find_subtitle(movie_filename, 'en')
+            assert result == ('http://sub1.srt', '.srt' )
 
 
 def test_load_configuration(tmpdir):
@@ -396,13 +388,11 @@ class _Runner(object):
             open(name, 'w').close()
 
 
-    def _mock_query(self, movie_filenames, language):
-        result = {}
-        for movie_filename in movie_filenames:
-            if movie_filename in self._movies:
-                result[movie_filename] = [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}]
-
-        return result
+    def _mock_query(self, movie_filename, language):
+        if movie_filename in self._movies:
+            return [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}]
+        else:
+            return []
 
 
     def _mock_embed_mkv(self, movie_filename, subtitle_filename, language):
@@ -416,6 +406,7 @@ class _Runner(object):
 
 
     def check_files(self, *expected):
+        __tracebackhide__ = True
         assert set(os.listdir(str(self._tmpdir))) == set(expected)
 
 
