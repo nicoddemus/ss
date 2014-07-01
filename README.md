@@ -86,7 +86,7 @@ mkv=False
 The following options are available:
 
 * `language:` 3 letter code with the language to search subtitles for. Use the same code as it 
-  appears when you change search languages (as in http://www.opensubtitles.org/en/search/sublanguageid-pob).
+  appears when you change search languages (as in http://www.opensubtitles.org/addons/export_languages.php).
 
 * `recursive`: if directories should be recursively searched for movies.
 

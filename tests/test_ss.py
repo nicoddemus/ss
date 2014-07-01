@@ -184,7 +184,7 @@ def test_load_configuration(tmpdir):
     with open(config_filename, 'w') as f:
         lines = [
             '[ss]',
-            'language = br',
+            'languages = br',
             'recursive = yes',
             'skip = on',
             'mkv = 1',
@@ -192,7 +192,7 @@ def test_load_configuration(tmpdir):
         f.write('\n'.join(lines))
 
     loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
-    assert loaded == ss.Configuration('br', recursive=True, skip=True, mkv=True)
+    assert loaded == ss.Configuration(['br'], recursive=True, skip=True, mkv=True)
 
 
 def test_script_main():
@@ -290,12 +290,12 @@ def test_mkv(tmpdir, runner):
     """
     runner.register('serieS01E01.avi', ['pb'])
     runner.configuration.mkv = True
-    runner.configuration.language = 'pb'
+    runner.configuration.languages = ['pb']
     assert runner.run('serieS01E01.avi') == 0
     ss.embed_mkv.assert_called_once_with(
         str(tmpdir / 'serieS01E01.avi'),
         str(tmpdir / 'serieS01E01.srt'),
-        runner.configuration.language,
+        'pb',
     )
 
     assert 'Embedding MKV...' in runner.output
@@ -307,7 +307,7 @@ def test_verbose(runner):
     :type runner: _Runner
     """
     assert runner.run('--verbose') == 2
-    assert 'language = eng' in runner.output
+    assert 'languages = eng' in runner.output
     assert 'recursive = False' in runner.output
     assert 'skip = False' in runner.output
     assert 'mkv = False' in runner.output
@@ -322,6 +322,19 @@ def test_check_mkv(runner):
     ss.check_mkv.return_value = False
     assert runner.run('serieS01E01.avi') == 4
     assert 'mkvmerge not found in PATH' in runner.output
+
+
+def test_multiple_languages(runner):
+    """
+    Test downloading multiple languages simultaneously.
+
+    :type runner: _Runner
+    """
+    runner.register('serieS01E01.avi', ['eng', 'pb'])
+    runner.configuration.languages = ['eng', 'pb']
+    assert runner.run('serieS01E01.avi') == 0
+    runner.check_files('serieS01E01.avi', 'serieS01E01.eng.srt',
+                       'serieS01E01.pb.srt')
 
 
 

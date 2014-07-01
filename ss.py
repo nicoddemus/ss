@@ -104,17 +104,20 @@ def find_subtitle(movie_filename, language):
         return None, None
 
 
-def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
+def obtain_subtitle_filename(movie_filename, language, subtitle_ext, multi):
     dirname = os.path.dirname(movie_filename)
     basename = os.path.splitext(os.path.basename(movie_filename))[0]
 
     # possibilities where we don't override
-    filenames = [
-        #  -> movie.srt
-        os.path.join(dirname, basename + subtitle_ext),
-        #  -> movie.eng.srt
-        os.path.join(dirname, '%s.%s%s' % (basename, language, subtitle_ext)),
-    ]
+    filenames = []
+    if not multi:
+        # -> movie.srt
+        filenames.append(os.path.join(dirname, basename + subtitle_ext))
+
+    # -> movie.eng.srt
+    filenames.append(
+        os.path.join(dirname, '%s.%s%s' % (basename, language, subtitle_ext)))
+
     for filename in filenames:
         if not os.path.isfile(filename):
             return filename
@@ -191,10 +194,14 @@ def load_configuration(filename):
             setattr(config, option, value)
 
     config = Configuration()
-    read_if_defined('language', 'get')
     read_if_defined('recursive', 'getboolean')
     read_if_defined('skip', 'getboolean')
     read_if_defined('mkv', 'getboolean')
+
+    if p.has_option('ss', 'languages'):
+        value = p.get('ss', 'languages')
+        config.languages = [x.strip() for x in value.split(',')]
+
     return config
 
 
@@ -242,15 +249,15 @@ def calculate_hash_for_file(name):
 
 class Configuration(object):
 
-    def __init__(self, language='eng', recursive=False, skip=False, mkv=False):
-        self.language = language
+    def __init__(self, languages=('eng',), recursive=False, skip=False, mkv=False):
+        self.languages = list(languages)
         self.recursive = recursive
         self.skip = skip
         self.mkv = mkv
 
     def __eq__(self, other):
         return \
-            self.language == other.language and \
+            self.languages == other.languages and \
             self.recursive == other.recursive and \
             self.skip == other.skip and \
             self.mkv == other.mkv
@@ -259,12 +266,12 @@ class Configuration(object):
         return not self == other
 
     def __repr__(self):
-        return 'Configuration(language="%s", recursive=%s, skip=%s, mkv=%s)' % \
-               (self.language, self.recursive, self.skip, self.mkv)
+        return 'Configuration(languages="%s", recursive=%s, skip=%s, mkv=%s)' % \
+               (self.languages, self.recursive, self.skip, self.mkv)
 
     def __str__(self):
         values = [
-            'language = %s' % self.language,
+            'languages = %s' % ', '.join(self.languages),
             'recursive = %s' % self.recursive,
             'skip = %s' % self.skip,
             'mkv = %s' % self.mkv,
@@ -330,7 +337,7 @@ def main(argv=None, stream=sys.stdout):
         print('%s%s%s' % (text, ' ' * spaces, status), file=stream)
 
 
-    print('Language: %s' % config.language, file=stream)
+    print('Languages: %s' % config.languages, file=stream)
 
     if not input_filenames:
         return 1
@@ -341,28 +348,36 @@ def main(argv=None, stream=sys.stdout):
     matches = []
     input_filenames.sort()
     for movie_filename in input_filenames:
-        subtitle_url, subtitle_ext = find_subtitle(movie_filename,
-                                                   language=config.language)
-        if subtitle_url:
-            status = 'OK'
-        else:
-            status = 'No matches found.'
+        multi = len(config.languages) > 1
+        for language in config.languages:
+            subtitle_url, subtitle_ext = find_subtitle(movie_filename,
+                                                       language=language)
+            if subtitle_url:
+                status = 'OK'
+            else:
+                status = 'No matches found.'
 
-        print_status('- %s' % os.path.basename(movie_filename), status)
+            print_status(
+                '- %s (%s)' % (os.path.basename(movie_filename), language),
+                status)
 
-        if subtitle_url:
-            subtitle_filename = obtain_subtitle_filename(movie_filename,
-                                                         config.language,
-                                                         subtitle_ext)
-            matches.append(
-                (movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
+            if subtitle_url:
+                subtitle_filename = obtain_subtitle_filename(movie_filename,
+                                                             language,
+                                                             subtitle_ext,
+                                                             multi=multi)
+
+                match = (movie_filename, subtitle_url, subtitle_ext,
+                         subtitle_filename, language)
+
+                matches.append(match)
 
     if not matches:
         return 0
 
     print('', file=stream)
     print('Downloading...', file=stream)
-    for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
+    for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename, language) in matches:
         download_subtitle(subtitle_url, subtitle_filename)
         print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
@@ -370,9 +385,11 @@ def main(argv=None, stream=sys.stdout):
         print('', file=stream)
         print('Embedding MKV...', file=stream)
         failures = []  # list of (movie_filename, output)
-        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
+        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename,
+             language) in matches:
             if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
-                status, output = embed_mkv(movie_filename, subtitle_filename, config.language)
+                status, output = embed_mkv(movie_filename, subtitle_filename,
+                                           language)
                 output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
                 if not status:
                     failures.append((movie_filename, output))
