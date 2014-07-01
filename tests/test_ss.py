@@ -266,8 +266,7 @@ def test_normal(runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
-    runner.add_available_subtitle('serieS01E01.srt')
+    runner.register('serieS01E01.avi', ['eng'])
     assert runner.run('serieS01E01.avi') == 0
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
     assert 'Downloading' in runner.output
@@ -277,7 +276,7 @@ def test_skipping(tmpdir, runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
+    runner.register('serieS01E01.avi')
     (tmpdir / 'serieS01E01.srt').ensure()
     runner.configuration.skip = True
     assert runner.run('serieS01E01.avi') == 1
@@ -289,8 +288,7 @@ def test_mkv(tmpdir, runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
-    runner.add_available_subtitle('serieS01E01.srt')
+    runner.register('serieS01E01.avi', ['pb'])
     runner.configuration.mkv = True
     runner.configuration.language = 'pb'
     assert runner.run('serieS01E01.avi') == 0
@@ -319,7 +317,7 @@ def test_check_mkv(runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
+    runner.register('serieS01E01.avi', ['eng'])
     runner.configuration.mkv = True
     ss.check_mkv.return_value = False
     assert runner.run('serieS01E01.avi') == 4
@@ -340,18 +338,17 @@ class _Runner(object):
     def __init__(self, tmpdir):
         self._tmpdir = tmpdir
         self._movies = set()
-        self._available_subtitles = set()
+        self._subtitles = {} # movie name to set of subtitle langues
         self._patchers = dict()
         self.configuration = ss.Configuration(mkv=False)
         self.output = None
 
 
-    def add_existing_movie(self, name):
-        self._movies.add(self._tmpdir.join(name).ensure())
+    def register(self, movie_name, subtitle_languages=()):
+        self._tmpdir.join(movie_name).ensure()
+        self._movies.add(movie_name)
+        self._subtitles[movie_name] = frozenset(subtitle_languages)
 
-
-    def add_available_subtitle(self, name):
-        self._available_subtitles.add(name)
 
 
     def run(self, *args):
@@ -384,12 +381,12 @@ class _Runner(object):
 
 
     def _mock_download(self, url, name):
-        if os.path.basename(name) in self._available_subtitles:
-            open(name, 'w').close()
+        open(name, 'w').close()
 
 
     def _mock_query(self, movie_filename, language):
-        if movie_filename in self._movies:
+        movie_name = os.path.basename(movie_filename)
+        if language in self._subtitles.get(movie_name, set()):
             return [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}]
         else:
             return []
