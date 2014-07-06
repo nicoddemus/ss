@@ -40,10 +40,16 @@ def test_find_movie_files(tmpdir):
 
 
 def test_has_subtitles(tmpdir):
-    assert not ss.has_subtitle(str(tmpdir.join('video.avi').ensure()))
+    movie_filename = str(tmpdir.join('video.avi').ensure())
+    assert not ss.has_subtitle(movie_filename, 'eng', multi=False)
+    assert not ss.has_subtitle(movie_filename, 'eng', multi=True)
 
     tmpdir.join('video.srt').ensure()
-    assert ss.has_subtitle(str(tmpdir.join('video.avi').ensure()))
+    assert ss.has_subtitle(movie_filename, 'eng', multi=False)
+    assert not ss.has_subtitle(movie_filename, 'eng', multi=True)
+
+    tmpdir.join('video.eng.srt').ensure()
+    assert ss.has_subtitle(movie_filename, 'eng', multi=True)
 
 
 def test_query_open_subtitles(tmpdir):
@@ -272,16 +278,36 @@ def test_normal(runner):
     assert 'Downloading' in runner.output
 
 
-def test_skipping(tmpdir, runner):
+@pytest.mark.parametrize(
+    ('subtitle_files', 'languages', 'skip_count'),
+    [
+        (['movie.srt'], ['eng'], 1),
+        (['movie.srt'], ['eng', 'pob'], 0),
+        (['movie.eng.srt'], ['eng', 'pob'], 1),
+        (['movie.eng.srt', 'movie.pob.srt'], ['eng', 'pob'], 2),
+    ]
+)
+def test_skipping(tmpdir, runner, subtitle_files, languages, skip_count):
     """
     :type runner: _Runner
     """
-    runner.register('serieS01E01.avi')
-    (tmpdir / 'serieS01E01.srt').ensure()
+    runner.register('movie.avi', languages)
+    for subtitle_file in subtitle_files:
+        (tmpdir / subtitle_file).write('untouched')
     runner.configuration.skip = True
-    assert runner.run('serieS01E01.avi') == 1
-    runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
-    assert 'Skipping 1 files that already have subtitles.' in runner.output
+    runner.configuration.languages = languages
+    assert runner.run('movie.avi') == 0, runner.output
+    expected_files = list(subtitle_files)
+    if len(languages) > 1:
+        expected_files.extend('movie.%s.srt' % x for x in languages)
+    runner.check_files('movie.avi', *expected_files)
+    for subtitle_file in subtitle_files:
+        assert (tmpdir / subtitle_file).read() == 'untouched'
+        assert subtitle_file not in runner.downloaded
+    if skip_count:
+        assert 'Skipping %d subtitles.' % skip_count in runner.output
+    else:
+        assert 'Skipping' not in runner.output
 
 
 def test_mkv(tmpdir, runner):
@@ -355,6 +381,7 @@ class _Runner(object):
         self._patchers = dict()
         self.configuration = ss.Configuration(mkv=False)
         self.output = None
+        self.downloaded = set()
 
 
     def register(self, movie_name, subtitle_languages=()):
@@ -394,7 +421,9 @@ class _Runner(object):
 
 
     def _mock_download(self, url, name):
-        open(name, 'w').close()
+        with open(name, 'w') as f:
+            f.write('downloaded')
+        self.downloaded.add(name)
 
 
     def _mock_query(self, movie_filename, language):

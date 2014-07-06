@@ -11,6 +11,7 @@ import sys
 
 import guessit
 import subprocess
+import itertools
 
 
 if sys.version_info[0] == 3:
@@ -105,26 +106,12 @@ def find_subtitle(movie_filename, language):
 
 
 def obtain_subtitle_filename(movie_filename, language, subtitle_ext, multi):
-    dirname = os.path.dirname(movie_filename)
-    basename = os.path.splitext(os.path.basename(movie_filename))[0]
-
     # possibilities where we don't override
-    filenames = []
-    if not multi:
-        # -> movie.srt
-        filenames.append(os.path.join(dirname, basename + subtitle_ext))
-
-    # -> movie.eng.srt
-    filenames.append(
-        os.path.join(dirname, '%s.%s%s' % (basename, language, subtitle_ext)))
-
-    for filename in filenames:
-        if not os.path.isfile(filename):
-            return filename
-
-    # use also ss on the extension and always overwrite
-    #  -> movie.eng.ss.srt
-    return os.path.join(dirname, '%s.%s.%s%s' % (basename, language, 'ss', subtitle_ext))
+    if multi:
+        new_ext = '.' + language + subtitle_ext
+    else:
+        new_ext = subtitle_ext
+    return os.path.splitext(movie_filename)[0] + new_ext
 
 
 def download_subtitle(subtitle_url, subtitle_filename):
@@ -172,12 +159,13 @@ def find_movie_files(input_names, recursive=False):
                         yield x
 
 
-def has_subtitle(filename):
+def has_subtitle(filename, language, multi):
     # list of subtitle formats obtained from opensubtitles' advanced search page.
     formats = ['.sub', '.srt', '.ssa', '.smi', '.mpl']
-    basename = os.path.splitext(filename)[0]
     for ext in formats:
-        if os.path.isfile(basename + ext):
+        subtitle_filename = obtain_subtitle_filename(filename, language, ext,
+                                                     multi)
+        if os.path.isfile(subtitle_filename):
             return True
 
     return False
@@ -316,19 +304,19 @@ def main(argv=None, stream=sys.stdout):
                   'in your config.', file=stream)
             return 4
 
-    skipped_filenames = []
-    if config.skip:
-        new_input_filenames = []
-        for input_filename in input_filenames:
-            if has_subtitle(input_filename):
-                skipped_filenames.append(input_filename)
-            else:
-                new_input_filenames.append(input_filename)
-        input_filenames = new_input_filenames
+    print('Languages: %s' % ', '.join(config.languages), file=stream)
 
-        if skipped_filenames:
-            print('Skipping %d files that already have subtitles.' % len(
-                skipped_filenames), file=stream)
+    multi = len(config.languages) > 1
+
+    to_skip = set()
+    if config.skip:
+        for input_filename in input_filenames:
+            for language in config.languages:
+                if has_subtitle(input_filename, language, multi):
+                    to_skip.add((input_filename, language))
+
+        if to_skip:
+            print('Skipping %d subtitles.' % len(to_skip), file=stream)
 
     def print_status(text, status):
         spaces = 70 - len(text)
@@ -336,41 +324,39 @@ def main(argv=None, stream=sys.stdout):
             spaces = 2
         print('%s%s%s' % (text, ' ' * spaces, status), file=stream)
 
+    to_query = set(itertools.product(input_filenames, config.languages))
+    to_query.difference_update(to_skip)
 
-    print('Languages: %s' % config.languages, file=stream)
+    if not to_query:
+        return 0
 
-    if not input_filenames:
-        return 1
-
-    print('Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames), file=stream)
+    print('Querying OpenSubtitles.org...', file=stream)
     print('', file=stream)
 
     matches = []
-    input_filenames.sort()
-    for movie_filename in input_filenames:
-        multi = len(config.languages) > 1
-        for language in config.languages:
-            subtitle_url, subtitle_ext = find_subtitle(movie_filename,
-                                                       language=language)
-            if subtitle_url:
-                status = 'OK'
-            else:
-                status = 'No matches found.'
+    to_query = sorted(to_query)
+    for movie_filename, language in to_query:
+        subtitle_url, subtitle_ext = find_subtitle(movie_filename,
+                                                   language=language)
+        if subtitle_url:
+            status = 'OK'
+        else:
+            status = 'No matches found.'
 
-            print_status(
-                '- %s (%s)' % (os.path.basename(movie_filename), language),
-                status)
+        print_status(
+            '- %s (%s)' % (os.path.basename(movie_filename), language),
+            status)
 
-            if subtitle_url:
-                subtitle_filename = obtain_subtitle_filename(movie_filename,
-                                                             language,
-                                                             subtitle_ext,
-                                                             multi=multi)
+        if subtitle_url:
+            subtitle_filename = obtain_subtitle_filename(movie_filename,
+                                                         language,
+                                                         subtitle_ext,
+                                                         multi=multi)
 
-                match = (movie_filename, subtitle_url, subtitle_ext,
-                         subtitle_filename, language)
+            match = (movie_filename, subtitle_url, subtitle_ext,
+                     subtitle_filename, language)
 
-                matches.append(match)
+            matches.append(match)
 
     if not matches:
         return 0
