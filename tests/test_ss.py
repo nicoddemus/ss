@@ -255,8 +255,15 @@ def test_embed_mkv():
         popen.communicate.return_value = ('', '')
         popen.poll.return_value = 0
 
-        assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
-        params = u'mkvmerge --output foo.mkv foo.avi --language 0:eng foo.srt'.split()
+        subtitles = [('eng', u'foo.eng.srt'), ('pob', u'foo.pob.srt')]
+        with patch('ss.convert_language_code_to_iso639_2',
+                   side_effect=['eng', 'por']) as mocked_convert:
+            assert ss.embed_mkv(u'foo.avi', subtitles) == (True, '')
+            mocked_convert.assert_has_calls([call('eng'), call('pob')])
+
+        params = (u'mkvmerge --output foo.mkv foo.avi '
+                  u'--language 0:eng foo.eng.srt '
+                  u'--language 0:por foo.pob.srt').split()
         mocked_popen.assert_called_once_with(params, shell=True,
                                              stderr=subprocess.STDOUT,
                                              stdout=subprocess.PIPE)
@@ -265,10 +272,10 @@ def test_embed_mkv():
 
         popen.communicate.return_value = ('failed error', '')
         popen.poll.return_value = 2
-        assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
+        assert ss.embed_mkv(u'foo.avi', [('eng', u'foo.srt')]) == (False, 'failed error')
 
 
-def test_normal(runner):
+def test_normal_execution(runner):
     """
     :type runner: _Runner
     """
@@ -314,18 +321,32 @@ def test_mkv(tmpdir, runner):
     """
     :type runner: _Runner
     """
-    runner.register('serieS01E01.avi', ['pb'])
+    runner.register('serieS01E01.avi', ['pob', 'eng'])
     runner.configuration.mkv = True
-    runner.configuration.languages = ['pb']
+    runner.configuration.languages = ['pob', 'eng']
     assert runner.run('serieS01E01.avi') == 0
     ss.embed_mkv.assert_called_once_with(
-        str(tmpdir / 'serieS01E01.avi'),
-        str(tmpdir / 'serieS01E01.srt'),
-        'pb',
+        str(tmpdir / 'serieS01E01.avi'), [
+            ('eng', str(tmpdir / 'serieS01E01.eng.srt')),
+            ('pob', str(tmpdir / 'serieS01E01.pob.srt')),
+        ],
     )
 
     assert 'Embedding MKV...' in runner.output
-    runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
+    runner.check_files('serieS01E01.avi', 'serieS01E01.pob.srt',
+                       'serieS01E01.eng.srt', 'serieS01E01.mkv')
+
+
+@pytest.mark.parametrize(
+    ('lang', 'expected'),
+    [
+        ('eng', 'eng'),
+        ('pob', 'por'),
+        ('pb', 'por'),
+    ],
+)
+def test_convert_language_code_to_iso639_2(lang, expected):
+    assert ss.convert_language_code_to_iso639_2(lang) == expected
 
 
 def test_verbose(runner):
@@ -434,11 +455,13 @@ class _Runner(object):
             return []
 
 
-    def _mock_embed_mkv(self, movie_filename, subtitle_filename, language):
+    def _mock_embed_mkv(self, movie_filename, subtitles):
         if not os.path.isfile(movie_filename):
             return False, '{} not found'.format(movie_filename)
-        if not os.path.isfile(subtitle_filename):
-            return False, '{} not found'.format(subtitle_filename)
+
+        for language, subtitle_filename in subtitles:
+            if not os.path.isfile(subtitle_filename):
+                return False, '{} not found'.format(subtitle_filename)
 
         open(os.path.splitext(movie_filename)[0] + '.mkv', 'w').close()
         return True, ''

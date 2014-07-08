@@ -371,11 +371,15 @@ def main(argv=None, stream=sys.stdout):
         print('', file=stream)
         print('Embedding MKV...', file=stream)
         failures = []  # list of (movie_filename, output)
+        to_embed = {}  # dict of movie -> (language, subtitle_filename)
         for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename,
              language) in matches:
+            to_embed.setdefault(movie_filename, []).append((language,
+                                                            subtitle_filename))
+        to_embed = sorted(to_embed.items())
+        for movie_filename, subtitles in to_embed:
             if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
-                status, output = embed_mkv(movie_filename, subtitle_filename,
-                                           language)
+                status, output = embed_mkv(movie_filename, sorted(subtitles))
                 output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
                 if not status:
                     failures.append((movie_filename, output))
@@ -396,21 +400,43 @@ def main(argv=None, stream=sys.stdout):
     return 0
 
 
-def embed_mkv(movie_filename, subtitle_filename, language):
+def embed_mkv(movie_filename, subtitles):
     output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
     params = [
         u'mkvmerge',
         u'--output', output_filename,
         movie_filename,
-        u'--language', u'0:{0}'.format(language),
-        subtitle_filename,
     ]
+    for language, subtitle_filename in subtitles:
+        iso_language = convert_language_code_to_iso639_2(language)
+        params.extend([
+            u'--language', u'0:{0}'.format(iso_language),
+            subtitle_filename,
+        ])
     try:
         check_output(params)
     except subprocess.CalledProcessError as e:
         return False, e.output
     else:
         return True, ''
+
+
+def convert_language_code_to_iso639_2(lang_code):
+    """
+    Translate OpenSubtitle language code to its iso-639-2 equivalent.
+
+    OpenSubtitles seem to support some extensions to iso-639-2, for instance
+    "pob" means "brazilian portuguese".
+
+    See http://www.opensubtitles.org/addons/export_languages.php.
+
+    :param str lang_code: original language code from OpenSubtitles
+    :return: iso-639-2 compatible
+    """
+    return {
+        'pob': 'por',
+        'pb': 'por',
+    }.get(lang_code, lang_code)
 
 
 def check_mkv():
