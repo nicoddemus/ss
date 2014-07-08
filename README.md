@@ -64,7 +64,7 @@ parameter:
 ```bash
 ] python ss.py --verbose
 Configuration read from ~/.ss.ini
-language = eng
+languages = eng, pob
 recursive = False
 skip = True
 mkv = True
