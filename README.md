@@ -77,7 +77,7 @@ Configuration is read from `~/.ss.ini`, which is a standard `ini` file:
 
 ```ini
 [ss]
-language=eng
+languages=eng, pob
 recursive=yes
 skip=yes
 mkv=False
@@ -85,8 +85,9 @@ mkv=False
 
 The following options are available:
 
-* `language:` 3 letter code with the language to search subtitles for. Use the same code as it 
-  appears when you change search languages (as in http://www.opensubtitles.org/en/search/sublanguageid-pob).
+* `languages:` 3 letter codes with the languages to search subtitles for, 
+  separated by commas. Use the same codes as when you change search languages.
+  For a full list, see http://www.opensubtitles.org/addons/export_languages.php.
 
 * `recursive`: if directories should be recursively searched for movies.
 
@@ -96,7 +97,7 @@ The following options are available:
 
 * `mkv`: if True, it will automatically create a [mkv](http://www.matroska.org/)
   file with video and subtitles embeded. Requires [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
-  to be available in the `$PATH`.
+  to be available in the `$PATH` environment variable.
 
 
 ## Support ##

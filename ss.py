@@ -11,6 +11,7 @@ import sys
 
 import guessit
 import subprocess
+import itertools
 
 
 if sys.version_info[0] == 3:
@@ -104,24 +105,13 @@ def find_subtitle(movie_filename, language):
         return None, None
 
 
-def obtain_subtitle_filename(movie_filename, language, subtitle_ext):
-    dirname = os.path.dirname(movie_filename)
-    basename = os.path.splitext(os.path.basename(movie_filename))[0]
-
+def obtain_subtitle_filename(movie_filename, language, subtitle_ext, multi):
     # possibilities where we don't override
-    filenames = [
-        #  -> movie.srt
-        os.path.join(dirname, basename + subtitle_ext),
-        #  -> movie.eng.srt
-        os.path.join(dirname, '%s.%s%s' % (basename, language, subtitle_ext)),
-    ]
-    for filename in filenames:
-        if not os.path.isfile(filename):
-            return filename
-
-    # use also ss on the extension and always overwrite
-    #  -> movie.eng.ss.srt
-    return os.path.join(dirname, '%s.%s.%s%s' % (basename, language, 'ss', subtitle_ext))
+    if multi:
+        new_ext = '.' + language + subtitle_ext
+    else:
+        new_ext = subtitle_ext
+    return os.path.splitext(movie_filename)[0] + new_ext
 
 
 def download_subtitle(subtitle_url, subtitle_filename):
@@ -169,12 +159,13 @@ def find_movie_files(input_names, recursive=False):
                         yield x
 
 
-def has_subtitle(filename):
+def has_subtitle(filename, language, multi):
     # list of subtitle formats obtained from opensubtitles' advanced search page.
     formats = ['.sub', '.srt', '.ssa', '.smi', '.mpl']
-    basename = os.path.splitext(filename)[0]
     for ext in formats:
-        if os.path.isfile(basename + ext):
+        subtitle_filename = obtain_subtitle_filename(filename, language, ext,
+                                                     multi)
+        if os.path.isfile(subtitle_filename):
             return True
 
     return False
@@ -191,10 +182,14 @@ def load_configuration(filename):
             setattr(config, option, value)
 
     config = Configuration()
-    read_if_defined('language', 'get')
     read_if_defined('recursive', 'getboolean')
     read_if_defined('skip', 'getboolean')
     read_if_defined('mkv', 'getboolean')
+
+    if p.has_option('ss', 'languages'):
+        value = p.get('ss', 'languages')
+        config.languages = [x.strip() for x in value.split(',')]
+
     return config
 
 
@@ -242,15 +237,15 @@ def calculate_hash_for_file(name):
 
 class Configuration(object):
 
-    def __init__(self, language='eng', recursive=False, skip=False, mkv=False):
-        self.language = language
+    def __init__(self, languages=('eng',), recursive=False, skip=False, mkv=False):
+        self.languages = list(languages)
         self.recursive = recursive
         self.skip = skip
         self.mkv = mkv
 
     def __eq__(self, other):
         return \
-            self.language == other.language and \
+            self.languages == other.languages and \
             self.recursive == other.recursive and \
             self.skip == other.skip and \
             self.mkv == other.mkv
@@ -259,12 +254,12 @@ class Configuration(object):
         return not self == other
 
     def __repr__(self):
-        return 'Configuration(language="%s", recursive=%s, skip=%s, mkv=%s)' % \
-               (self.language, self.recursive, self.skip, self.mkv)
+        return 'Configuration(languages="%s", recursive=%s, skip=%s, mkv=%s)' % \
+               (self.languages, self.recursive, self.skip, self.mkv)
 
     def __str__(self):
         values = [
-            'language = %s' % self.language,
+            'languages = %s' % ', '.join(self.languages),
             'recursive = %s' % self.recursive,
             'skip = %s' % self.skip,
             'mkv = %s' % self.mkv,
@@ -309,19 +304,19 @@ def main(argv=None, stream=sys.stdout):
                   'in your config.', file=stream)
             return 4
 
-    skipped_filenames = []
-    if config.skip:
-        new_input_filenames = []
-        for input_filename in input_filenames:
-            if has_subtitle(input_filename):
-                skipped_filenames.append(input_filename)
-            else:
-                new_input_filenames.append(input_filename)
-        input_filenames = new_input_filenames
+    print('Languages: %s' % ', '.join(config.languages), file=stream)
 
-        if skipped_filenames:
-            print('Skipping %d files that already have subtitles.' % len(
-                skipped_filenames), file=stream)
+    multi = len(config.languages) > 1
+
+    to_skip = set()
+    if config.skip:
+        for input_filename in input_filenames:
+            for language in config.languages:
+                if has_subtitle(input_filename, language, multi):
+                    to_skip.add((input_filename, language))
+
+        if to_skip:
+            print('Skipping %d subtitles.' % len(to_skip), file=stream)
 
     def print_status(text, status):
         spaces = 70 - len(text)
@@ -329,40 +324,46 @@ def main(argv=None, stream=sys.stdout):
             spaces = 2
         print('%s%s%s' % (text, ' ' * spaces, status), file=stream)
 
+    to_query = set(itertools.product(input_filenames, config.languages))
+    to_query.difference_update(to_skip)
 
-    print('Language: %s' % config.language, file=stream)
+    if not to_query:
+        return 0
 
-    if not input_filenames:
-        return 1
-
-    print('Querying OpenSubtitles.org for %d file(s)...' % len(input_filenames), file=stream)
+    print('Querying OpenSubtitles.org...', file=stream)
     print('', file=stream)
 
     matches = []
-    input_filenames.sort()
-    for movie_filename in input_filenames:
+    to_query = sorted(to_query)
+    for movie_filename, language in to_query:
         subtitle_url, subtitle_ext = find_subtitle(movie_filename,
-                                                   language=config.language)
+                                                   language=language)
         if subtitle_url:
             status = 'OK'
         else:
             status = 'No matches found.'
 
-        print_status('- %s' % os.path.basename(movie_filename), status)
+        print_status(
+            '- %s (%s)' % (os.path.basename(movie_filename), language),
+            status)
 
         if subtitle_url:
             subtitle_filename = obtain_subtitle_filename(movie_filename,
-                                                         config.language,
-                                                         subtitle_ext)
-            matches.append(
-                (movie_filename, subtitle_url, subtitle_ext, subtitle_filename))
+                                                         language,
+                                                         subtitle_ext,
+                                                         multi=multi)
+
+            match = (movie_filename, subtitle_url, subtitle_ext,
+                     subtitle_filename, language)
+
+            matches.append(match)
 
     if not matches:
         return 0
 
     print('', file=stream)
     print('Downloading...', file=stream)
-    for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
+    for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename, language) in matches:
         download_subtitle(subtitle_url, subtitle_filename)
         print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
@@ -370,9 +371,15 @@ def main(argv=None, stream=sys.stdout):
         print('', file=stream)
         print('Embedding MKV...', file=stream)
         failures = []  # list of (movie_filename, output)
-        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename) in matches:
+        to_embed = {}  # dict of movie -> (language, subtitle_filename)
+        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename,
+             language) in matches:
+            to_embed.setdefault(movie_filename, []).append((language,
+                                                            subtitle_filename))
+        to_embed = sorted(to_embed.items())
+        for movie_filename, subtitles in to_embed:
             if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
-                status, output = embed_mkv(movie_filename, subtitle_filename, config.language)
+                status, output = embed_mkv(movie_filename, sorted(subtitles))
                 output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
                 if not status:
                     failures.append((movie_filename, output))
@@ -393,21 +400,43 @@ def main(argv=None, stream=sys.stdout):
     return 0
 
 
-def embed_mkv(movie_filename, subtitle_filename, language):
+def embed_mkv(movie_filename, subtitles):
     output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
     params = [
         u'mkvmerge',
         u'--output', output_filename,
         movie_filename,
-        u'--language', u'0:{0}'.format(language),
-        subtitle_filename,
     ]
+    for language, subtitle_filename in subtitles:
+        iso_language = convert_language_code_to_iso639_2(language)
+        params.extend([
+            u'--language', u'0:{0}'.format(iso_language),
+            subtitle_filename,
+        ])
     try:
         check_output(params)
     except subprocess.CalledProcessError as e:
         return False, e.output
     else:
         return True, ''
+
+
+def convert_language_code_to_iso639_2(lang_code):
+    """
+    Translate OpenSubtitle language code to its iso-639-2 equivalent.
+
+    OpenSubtitles seem to support some extensions to iso-639-2, for instance
+    "pob" means "brazilian portuguese".
+
+    See http://www.opensubtitles.org/addons/export_languages.php.
+
+    :param str lang_code: original language code from OpenSubtitles
+    :return: iso-639-2 compatible
+    """
+    return {
+        'pob': 'por',
+        'pb': 'por',
+    }.get(lang_code, lang_code)
 
 
 def check_mkv():

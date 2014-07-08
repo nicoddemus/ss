@@ -40,10 +40,16 @@ def test_find_movie_files(tmpdir):
 
 
 def test_has_subtitles(tmpdir):
-    assert not ss.has_subtitle(str(tmpdir.join('video.avi').ensure()))
+    movie_filename = str(tmpdir.join('video.avi').ensure())
+    assert not ss.has_subtitle(movie_filename, 'eng', multi=False)
+    assert not ss.has_subtitle(movie_filename, 'eng', multi=True)
 
     tmpdir.join('video.srt').ensure()
-    assert ss.has_subtitle(str(tmpdir.join('video.avi').ensure()))
+    assert ss.has_subtitle(movie_filename, 'eng', multi=False)
+    assert not ss.has_subtitle(movie_filename, 'eng', multi=True)
+
+    tmpdir.join('video.eng.srt').ensure()
+    assert ss.has_subtitle(movie_filename, 'eng', multi=True)
 
 
 def test_query_open_subtitles(tmpdir):
@@ -184,7 +190,7 @@ def test_load_configuration(tmpdir):
     with open(config_filename, 'w') as f:
         lines = [
             '[ss]',
-            'language = br',
+            'languages = br',
             'recursive = yes',
             'skip = on',
             'mkv = 1',
@@ -192,7 +198,7 @@ def test_load_configuration(tmpdir):
         f.write('\n'.join(lines))
 
     loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
-    assert loaded == ss.Configuration('br', recursive=True, skip=True, mkv=True)
+    assert loaded == ss.Configuration(['br'], recursive=True, skip=True, mkv=True)
 
 
 def test_script_main():
@@ -249,8 +255,15 @@ def test_embed_mkv():
         popen.communicate.return_value = ('', '')
         popen.poll.return_value = 0
 
-        assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (True, '')
-        params = u'mkvmerge --output foo.mkv foo.avi --language 0:eng foo.srt'.split()
+        subtitles = [('eng', u'foo.eng.srt'), ('pob', u'foo.pob.srt')]
+        with patch('ss.convert_language_code_to_iso639_2',
+                   side_effect=['eng', 'por']) as mocked_convert:
+            assert ss.embed_mkv(u'foo.avi', subtitles) == (True, '')
+            mocked_convert.assert_has_calls([call('eng'), call('pob')])
+
+        params = (u'mkvmerge --output foo.mkv foo.avi '
+                  u'--language 0:eng foo.eng.srt '
+                  u'--language 0:por foo.pob.srt').split()
         mocked_popen.assert_called_once_with(params, shell=True,
                                              stderr=subprocess.STDOUT,
                                              stdout=subprocess.PIPE)
@@ -259,49 +272,81 @@ def test_embed_mkv():
 
         popen.communicate.return_value = ('failed error', '')
         popen.poll.return_value = 2
-        assert ss.embed_mkv(u'foo.avi', u'foo.srt', 'eng') == (False, 'failed error')
+        assert ss.embed_mkv(u'foo.avi', [('eng', u'foo.srt')]) == (False, 'failed error')
 
 
-def test_normal(runner):
+def test_normal_execution(runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
-    runner.add_available_subtitle('serieS01E01.srt')
+    runner.register('serieS01E01.avi', ['eng'])
     assert runner.run('serieS01E01.avi') == 0
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
     assert 'Downloading' in runner.output
 
 
-def test_skipping(tmpdir, runner):
+@pytest.mark.parametrize(
+    ('subtitle_files', 'languages', 'skip_count'),
+    [
+        (['movie.srt'], ['eng'], 1),
+        (['movie.srt'], ['eng', 'pob'], 0),
+        (['movie.eng.srt'], ['eng', 'pob'], 1),
+        (['movie.eng.srt', 'movie.pob.srt'], ['eng', 'pob'], 2),
+    ]
+)
+def test_skipping(tmpdir, runner, subtitle_files, languages, skip_count):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
-    (tmpdir / 'serieS01E01.srt').ensure()
+    runner.register('movie.avi', languages)
+    for subtitle_file in subtitle_files:
+        (tmpdir / subtitle_file).write('untouched')
     runner.configuration.skip = True
-    assert runner.run('serieS01E01.avi') == 1
-    runner.check_files('serieS01E01.avi', 'serieS01E01.srt')
-    assert 'Skipping 1 files that already have subtitles.' in runner.output
+    runner.configuration.languages = languages
+    assert runner.run('movie.avi') == 0, runner.output
+    expected_files = list(subtitle_files)
+    if len(languages) > 1:
+        expected_files.extend('movie.%s.srt' % x for x in languages)
+    runner.check_files('movie.avi', *expected_files)
+    for subtitle_file in subtitle_files:
+        assert (tmpdir / subtitle_file).read() == 'untouched'
+        assert subtitle_file not in runner.downloaded
+    if skip_count:
+        assert 'Skipping %d subtitles.' % skip_count in runner.output
+    else:
+        assert 'Skipping' not in runner.output
 
 
 def test_mkv(tmpdir, runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
-    runner.add_available_subtitle('serieS01E01.srt')
+    runner.register('serieS01E01.avi', ['pob', 'eng'])
     runner.configuration.mkv = True
-    runner.configuration.language = 'pb'
+    runner.configuration.languages = ['pob', 'eng']
     assert runner.run('serieS01E01.avi') == 0
     ss.embed_mkv.assert_called_once_with(
-        str(tmpdir / 'serieS01E01.avi'),
-        str(tmpdir / 'serieS01E01.srt'),
-        runner.configuration.language,
+        str(tmpdir / 'serieS01E01.avi'), [
+            ('eng', str(tmpdir / 'serieS01E01.eng.srt')),
+            ('pob', str(tmpdir / 'serieS01E01.pob.srt')),
+        ],
     )
 
     assert 'Embedding MKV...' in runner.output
-    runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
+    runner.check_files('serieS01E01.avi', 'serieS01E01.pob.srt',
+                       'serieS01E01.eng.srt', 'serieS01E01.mkv')
+
+
+@pytest.mark.parametrize(
+    ('lang', 'expected'),
+    [
+        ('eng', 'eng'),
+        ('pob', 'por'),
+        ('pb', 'por'),
+    ],
+)
+def test_convert_language_code_to_iso639_2(lang, expected):
+    assert ss.convert_language_code_to_iso639_2(lang) == expected
 
 
 def test_verbose(runner):
@@ -309,7 +354,7 @@ def test_verbose(runner):
     :type runner: _Runner
     """
     assert runner.run('--verbose') == 2
-    assert 'language = eng' in runner.output
+    assert 'languages = eng' in runner.output
     assert 'recursive = False' in runner.output
     assert 'skip = False' in runner.output
     assert 'mkv = False' in runner.output
@@ -319,11 +364,24 @@ def test_check_mkv(runner):
     """
     :type runner: _Runner
     """
-    runner.add_existing_movie('serieS01E01.avi')
+    runner.register('serieS01E01.avi', ['eng'])
     runner.configuration.mkv = True
     ss.check_mkv.return_value = False
     assert runner.run('serieS01E01.avi') == 4
     assert 'mkvmerge not found in PATH' in runner.output
+
+
+def test_multiple_languages(runner):
+    """
+    Test downloading multiple languages simultaneously.
+
+    :type runner: _Runner
+    """
+    runner.register('serieS01E01.avi', ['eng', 'pb'])
+    runner.configuration.languages = ['eng', 'pb']
+    assert runner.run('serieS01E01.avi') == 0
+    runner.check_files('serieS01E01.avi', 'serieS01E01.eng.srt',
+                       'serieS01E01.pb.srt')
 
 
 
@@ -340,18 +398,18 @@ class _Runner(object):
     def __init__(self, tmpdir):
         self._tmpdir = tmpdir
         self._movies = set()
-        self._available_subtitles = set()
+        self._subtitles = {} # movie name to set of subtitle langues
         self._patchers = dict()
         self.configuration = ss.Configuration(mkv=False)
         self.output = None
+        self.downloaded = set()
 
 
-    def add_existing_movie(self, name):
-        self._movies.add(self._tmpdir.join(name).ensure())
+    def register(self, movie_name, subtitle_languages=()):
+        self._tmpdir.join(movie_name).ensure()
+        self._movies.add(movie_name)
+        self._subtitles[movie_name] = frozenset(subtitle_languages)
 
-
-    def add_available_subtitle(self, name):
-        self._available_subtitles.add(name)
 
 
     def run(self, *args):
@@ -384,22 +442,26 @@ class _Runner(object):
 
 
     def _mock_download(self, url, name):
-        if os.path.basename(name) in self._available_subtitles:
-            open(name, 'w').close()
+        with open(name, 'w') as f:
+            f.write('downloaded')
+        self.downloaded.add(name)
 
 
     def _mock_query(self, movie_filename, language):
-        if movie_filename in self._movies:
+        movie_name = os.path.basename(movie_filename)
+        if language in self._subtitles.get(movie_name, set()):
             return [{'SubDownloadLink': 'fake_url', 'SubFormat': 'srt'}]
         else:
             return []
 
 
-    def _mock_embed_mkv(self, movie_filename, subtitle_filename, language):
+    def _mock_embed_mkv(self, movie_filename, subtitles):
         if not os.path.isfile(movie_filename):
             return False, '{} not found'.format(movie_filename)
-        if not os.path.isfile(subtitle_filename):
-            return False, '{} not found'.format(subtitle_filename)
+
+        for language, subtitle_filename in subtitles:
+            if not os.path.isfile(subtitle_filename):
+                return False, '{} not found'.format(subtitle_filename)
 
         open(os.path.splitext(movie_filename)[0] + '.mkv', 'w').close()
         return True, ''
