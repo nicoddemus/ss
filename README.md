@@ -16,7 +16,7 @@ manager to automatically execute it when a movie or video finishes.
 [![version](http://img.shields.io/pypi/v/ss.svg)](https://crate.io/packages/ss)
 [![downloads](http://img.shields.io/pypi/dm/ss.svg)](https://crate.io/packages/ss/)
 [![ci](http://img.shields.io/travis/nicoddemus/ss.svg)](https://travis-ci.org/nicoddemus/ss)
-[![coverage](http://img.shields.io/coveralls/nicoddemus/ss.png)](https://coveralls.io/r/nicoddemus/ss)
+[![coverage](http://img.shields.io/coveralls/nicoddemus/ss.svg)](https://coveralls.io/r/nicoddemus/ss)
 
 ## Requirements ##
 
