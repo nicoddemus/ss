@@ -26,7 +26,8 @@ def test_find_movie_files(tmpdir):
     tmpdir.join('video.srt').ensure()
     tmpdir.join('sub', 'video.mp4').ensure()
 
-    obtained = sorted(ss.find_movie_files([str(tmpdir.join('video.mpg')), str(tmpdir)]))
+    obtained = sorted(
+        ss.find_movie_files([str(tmpdir.join('video.mpg')), str(tmpdir)]))
     assert obtained == [
         tmpdir.join('video.avi'),
         tmpdir.join('video.mpg'),
@@ -68,9 +69,13 @@ def test_query_open_subtitles(tmpdir):
             rpc_mock.assert_called_once_with(
                 'http://api.opensubtitles.org/xml-rpc', use_datetime=True,
                 allow_none=True, verbose=0)
-            server.LogIn.assert_called_once_with('', '', 'en', 'OS Test User Agent')
+            server.LogIn.assert_called_once_with('', '', 'en',
+                                                 'OS Test User Agent')
             expected_calls = [
-                 call('TOKEN', [dict(query=u'"Drive" "2011"', sublanguageid='eng'), dict(moviehash='13ab', moviebytesize='0', sublanguageid='eng')]),
+                call('TOKEN',
+                     [dict(query=u'"Drive" "2011"', sublanguageid='eng'),
+                      dict(moviehash='13ab', moviebytesize='0',
+                           sublanguageid='eng')]),
             ]
 
             server.SearchSubtitles.assert_has_calls(expected_calls)
@@ -80,41 +85,47 @@ def test_query_open_subtitles(tmpdir):
 
 
 def test_obtain_guessit_query():
-    assert ss.obtain_guessit_query('Drive (2011) BDRip XviD-COCAIN.avi', 'eng') == {
-        'query': '"Drive" "2011"',
-        'sublanguageid' : 'eng',
-    }
+    assert ss.obtain_guessit_query('Drive (2011) BDRip XviD-COCAIN.avi',
+                                   'eng') == {
+               'query': '"Drive" "2011"',
+               'sublanguageid': 'eng',
+           }
 
-    assert ss.obtain_guessit_query('Project.X.2012.DVDRip.XviD-AMIABLE.avi', 'eng') == {
-        'query': '"Project X" "2012"',
-        'sublanguageid' : 'eng',
-    }
+    assert ss.obtain_guessit_query('Project.X.2012.DVDRip.XviD-AMIABLE.avi',
+                                   'eng') == {
+               'query': '"Project X" "2012"',
+               'sublanguageid': 'eng',
+           }
 
-    assert ss.obtain_guessit_query('Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'eng') == {
-        'query': u'"Parks and Recreation" "LOL"',
-        'episode': 13,
-        'season': 5,
-        'sublanguageid' : 'eng',
-    }
+    assert ss.obtain_guessit_query(
+        'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi', 'eng') == {
+               'query': u'"Parks and Recreation" "LOL"',
+               'episode': 13,
+               'season': 5,
+               'sublanguageid': 'eng',
+           }
 
-    assert ss.obtain_guessit_query('Modern.Family.S05E01.HDTV.x264-LOL.mp4', 'eng') == {
-        'query': u'"Modern Family" "LOL"',
-        'episode': 1,
-        'season': 5,
-        'sublanguageid' : 'eng',
-    }
+    assert ss.obtain_guessit_query('Modern.Family.S05E01.HDTV.x264-LOL.mp4',
+                                   'eng') == {
+               'query': u'"Modern Family" "LOL"',
+               'episode': 1,
+               'season': 5,
+               'sublanguageid': 'eng',
+           }
 
-    assert ss.obtain_guessit_query('The.IT.Crowd.S04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
-        'query': u'"The IT Crowd" "The Last Byte" "TLA"',
-        'season': 4,
-        'sublanguageid' : 'eng',
-    }
+    assert ss.obtain_guessit_query(
+        'The.IT.Crowd.S04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
+               'query': u'"The IT Crowd" "The Last Byte" "TLA"',
+               'season': 4,
+               'sublanguageid': 'eng',
+           }
 
-    assert ss.obtain_guessit_query('The.IT.Crowd.E04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
-        'query': u'"The IT Crowd" "The Last Byte" "TLA"',
-        'episode': 4,
-        'sublanguageid' : 'eng',
-    }
+    assert ss.obtain_guessit_query(
+        'The.IT.Crowd.E04.The.Last.Byte.PROPER.HDTV.x264-TLA.mp4', 'eng') == {
+               'query': u'"The IT Crowd" "The Last Byte" "TLA"',
+               'episode': 4,
+               'sublanguageid': 'eng',
+           }
 
     assert ss.obtain_guessit_query('Unknown.mp4', 'eng') == {
         'query': u'"Unknown"',
@@ -199,19 +210,30 @@ def test_load_configuration(tmpdir):
         f.write('\n'.join(lines))
 
     loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
-    assert loaded == ss.Configuration(['br'], recursive=True, skip=True, mkv=True)
+    assert loaded == ss.Configuration(['br'], recursive=True, skip=True,
+                                      mkv=True)
+
+
+def test_check_mkv_installed():
+    with patch('ss.check_output', autospec=True):
+        assert ss.check_mkv_installed()
+        ss.check_output.assert_called_once_with([u'mkvmerge', u'--version'])
+
+        ss.check_output.side_effect = subprocess.CalledProcessError(256,
+                                                                    'unused')
+        assert not ss.check_mkv_installed()
 
 
 def test_script_main():
     """
     Ensure that ss is accessible from the command line.
     """
-    proc = subprocess.Popen(['ss'], shell=True, stdout=subprocess.PIPE,
+    proc = subprocess.Popen('ss', shell=True, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     stdout, stderr = proc.communicate()
-    assert proc.returncode == 2
     assert stderr == b''
     assert b'Usage: ss [options]' in stdout
+    assert proc.returncode == 2
 
 
 def test_download_subtitle(tmpdir):
@@ -273,7 +295,8 @@ def test_embed_mkv():
 
         popen.communicate.return_value = ('failed error', '')
         popen.poll.return_value = 2
-        assert ss.embed_mkv(u'foo.avi', [('eng', u'foo.srt')]) == (False, 'failed error')
+        assert ss.embed_mkv(u'foo.avi', [('eng', u'foo.srt')]) == (
+        False, 'failed error')
 
 
 def test_normal_execution(runner):
@@ -361,15 +384,26 @@ def test_verbose(runner):
     assert 'mkv = False' in runner.output
 
 
-def test_check_mkv(runner):
+def test_missing_mkv(runner):
     """
     :type runner: _Runner
     """
     runner.register('serieS01E01.avi', ['eng'])
     runner.configuration.mkv = True
-    ss.check_mkv.return_value = False
+    ss.check_mkv_installed.return_value = False
     assert runner.run('serieS01E01.avi') == 4
     assert 'mkvmerge not found in PATH' in runner.output
+
+
+def test_mkv_error(runner):
+    runner.register('movie.avi', ['eng'])
+    runner.configuration.mkv = True
+    ss.embed_mkv.side_effect = None
+    error_message = 'error calling mkvmerge'
+    ss.embed_mkv.return_value = (False, error_message)
+    assert runner.run('movie.avi') == 0
+    runner.check_output_matches(':.*movie.avi:')
+    runner.check_output_matches(error_message)
 
 
 def test_multiple_languages(runner):
@@ -400,6 +434,17 @@ def test_mkv_with_subtitles_already_inplace(runner, tmpdir):
     runner.check_output_matches(r' - serieS01E01.mkv \s+ skipped')
 
 
+def test_no_matches(runner, tmpdir):
+    tmpdir.join('movie.avi').ensure()
+    assert runner.run('movie.avi') == 0
+    runner.check_output_matches(r'- movie.avi \(eng\) \s+ No matches found.')
+
+
+def test_no_input_files(runner, tmpdir):
+    assert runner.run('') == 1
+    runner.check_output_matches('No files to search subtitles for. Aborting.')
+
+
 @pytest.yield_fixture
 def runner(tmpdir):
     r = _Runner(tmpdir)
@@ -409,7 +454,6 @@ def runner(tmpdir):
 
 
 class _Runner(object):
-
     def __init__(self, tmpdir):
         self._tmpdir = tmpdir
         self._movies = set()
@@ -428,7 +472,8 @@ class _Runner(object):
 
     def run(self, *args):
         stream = StringIO()
-        args = [str(self._tmpdir / x) if not x.startswith('--') else x for x in args]
+        args = [str(self._tmpdir / x) if not x.startswith('--') else x for x in
+                args]
         result = ss.main(['ss'] + args, stream=stream)
         self.output = stream.getvalue()
         return result
@@ -441,13 +486,13 @@ class _Runner(object):
             download_subtitle=DEFAULT,
             load_configuration=DEFAULT,
             embed_mkv=DEFAULT,
-            check_mkv=DEFAULT,
+            check_mkv_installed=DEFAULT,
         ).start()
         self._patchers['query_open_subtitles'].side_effect = self._mock_query
         self._patchers['download_subtitle'].side_effect = self._mock_download
         self._patchers['load_configuration'].return_value = self.configuration
         self._patchers['embed_mkv'].side_effect = self._mock_embed_mkv
-        self._patchers['check_mkv'].return_value = True
+        self._patchers['check_mkv_installed'].return_value = True
 
 
     def stop(self):
