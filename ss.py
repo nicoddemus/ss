@@ -14,11 +14,11 @@ import subprocess
 import itertools
 
 
-if sys.version_info[0] == 3:
+if sys.version_info[0] == 3: # pragma: no cover
     from urllib.request import urlopen
     from xmlrpc.client import ServerProxy
     from configparser import RawConfigParser
-else:
+else: # pragma: no cover
     from urllib import urlopen
     from xmlrpclib import Server as ServerProxy
     from ConfigParser import RawConfigParser
@@ -41,9 +41,8 @@ def obtain_guessit_query(movie_filename, language):
 
     elif guess.get('type') == 'movie':
         result['query'] = extract_query(guess, ['title', 'year'])
-    else:
-        assert 'guessit returned invalid query:'
-        result['query'] = os.path.basename(movie_filename)
+    else:  # pragma: no cover
+        assert False, 'internal error: guessit guess: {0}'.format(guess)
 
     result['sublanguageid'] = language
 
@@ -213,8 +212,10 @@ def calculate_hash_for_file(name):
     filesize = os.path.getsize(name)
     hash = filesize
 
-    if filesize < 65536 * 2:
-        return "SizeError"
+    minimum_size = 65536 * 2
+    assert filesize >= minimum_size, \
+        'Movie {name} must have at least {min} bytes'.format(min=minimum_size,
+                                                             name=name)
 
     for x in range(65536//bytesize):
         buffer = f.read(bytesize)
@@ -250,10 +251,10 @@ class Configuration(object):
             self.skip == other.skip and \
             self.mkv == other.mkv
 
-    def __ne__(self, other):
+    def __ne__(self, other):  # pragma: no cover
         return not self == other
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return 'Configuration(languages="%s", recursive=%s, skip=%s, mkv=%s)' % \
                (self.languages, self.recursive, self.skip, self.mkv)
 
@@ -268,9 +269,7 @@ class Configuration(object):
 
 __version__ = '1.4.2'
 
-def main(argv=None, stream=sys.stdout):
-    if argv is None:
-        argv = sys.argv
+def main(argv=sys.argv, stream=sys.stdout):
     parser = optparse.OptionParser(
         usage='Usage: ss [options] <file or dir> <file or dir>...',
         description='Searches for subtitles using OpenSubtitles (http://www.opensubtitles.org).\n\nVersion: %s' % __version__,
@@ -298,7 +297,7 @@ def main(argv=None, stream=sys.stdout):
         return 1
 
     if config.mkv:
-        if not check_mkv():
+        if not check_mkv_installed():
             print('mkvmerge not found in PATH.', file=stream)
             print('Either install mkvtoolnix or disable mkv merging ' +
                   'in your config.', file=stream)
@@ -320,8 +319,7 @@ def main(argv=None, stream=sys.stdout):
 
     def print_status(text, status):
         spaces = 70 - len(text)
-        if spaces < 2:
-            spaces = 2
+        spaces = spaces if spaces >= 2 else 2
         print('%s%s%s' % (text, ' ' * spaces, status), file=stream)
 
     to_query = set(itertools.product(input_filenames, config.languages))
@@ -392,10 +390,9 @@ def main(argv=None, stream=sys.stdout):
                              'skipped')
 
         if failures:
-            header = print('_' * 80, file=stream)
-            print(header, file=stream)
+            print('_' * 80, file=stream)
             for movie_filename, output in failures:
-                print(':{%s}:' % movie_filename, file=stream)
+                print(':%s:' % movie_filename, file=stream)
                 print(output, file=stream)
 
     return 0
@@ -440,7 +437,7 @@ def convert_language_code_to_iso639_2(lang_code):
     }.get(lang_code, lang_code)
 
 
-def check_mkv():
+def check_mkv_installed():
     """
     Returns True if mkvtoolinx seems to be installed.
     """
@@ -469,17 +466,4 @@ def check_output(params):
 
 
 if __name__ == '__main__':
-    try:
-        sys.exit(main())
-    except:
-        import traceback
-
-        with open(__file__ + '.log', 'a+') as log_file:
-            log_file.write('ERROR ' + ('=' * 80) + '\n')
-            log_file.write('Date: %s' % time.strftime('%c'))
-            log_file.write('args: ' + repr(sys.argv))
-            traceback.print_exc(file=log_file)
-        raise
-
-
-
+    sys.exit(main(sys.argv))  # pragma: no cover
