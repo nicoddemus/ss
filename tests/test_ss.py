@@ -2,6 +2,7 @@ from __future__ import with_statement
 from contextlib import closing
 from gzip import GzipFile
 import os
+import re
 import sys
 
 import subprocess
@@ -384,6 +385,20 @@ def test_multiple_languages(runner):
                        'serieS01E01.pb.srt')
 
 
+def test_mkv_with_subtitles_already_inplace(runner, tmpdir):
+    """
+    :type runner: _Runner
+    """
+    tmpdir.join('serieS01E01.srt').ensure()
+    runner.register('serieS01E01.avi', ['eng'])
+    runner.configuration.mkv = True
+    assert runner.run('serieS01E01.avi') == 0
+    runner.check_output_matches(r' - serieS01E01.mkv \s+ DONE')
+    runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
+
+    assert runner.run('serieS01E01.avi') == 0
+    runner.check_output_matches(r' - serieS01E01.mkv \s+ skipped')
+
 
 @pytest.yield_fixture
 def runner(tmpdir):
@@ -398,7 +413,7 @@ class _Runner(object):
     def __init__(self, tmpdir):
         self._tmpdir = tmpdir
         self._movies = set()
-        self._subtitles = {} # movie name to set of subtitle langues
+        self._subtitles = {}  # movie name to set of subtitle langues
         self._patchers = dict()
         self.configuration = ss.Configuration(mkv=False)
         self.output = None
@@ -409,7 +424,6 @@ class _Runner(object):
         self._tmpdir.join(movie_name).ensure()
         self._movies.add(movie_name)
         self._subtitles[movie_name] = frozenset(subtitle_languages)
-
 
 
     def run(self, *args):
@@ -470,6 +484,13 @@ class _Runner(object):
     def check_files(self, *expected):
         __tracebackhide__ = True
         assert set(os.listdir(str(self._tmpdir))) == set(expected)
+
+
+    def check_output_matches(self, regex):
+        __tracebackhide__ = True
+        msg = 'Could not find regex "{regex}" in output:\n{output}'
+        assert re.search(regex, self.output) is not None, msg.format(
+            regex=regex, output=self.output)
 
 
 

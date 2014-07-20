@@ -378,16 +378,17 @@ def main(argv=None, stream=sys.stdout):
                                                             subtitle_filename))
         to_embed = sorted(to_embed.items())
         for movie_filename, subtitles in to_embed:
-            if os.path.splitext(movie_filename)[1].lower() != u'.mkv':
+            movie_ext = os.path.splitext(movie_filename)[1].lower()
+            mkv_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+            if movie_ext != u'.mkv' and not os.path.isfile(mkv_filename):
                 status, output = embed_mkv(movie_filename, sorted(subtitles))
-                output_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
                 if not status:
                     failures.append((movie_filename, output))
                 status = 'DONE' if status else 'ERROR'
-                print_status(' - %s' % os.path.basename(output_filename),
+                print_status(' - %s' % os.path.basename(mkv_filename),
                              status)
             else:
-                print_status(' - %s' % os.path.basename(movie_filename),
+                print_status(' - %s' % os.path.basename(mkv_filename),
                              'skipped')
 
         if failures:
