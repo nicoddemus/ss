@@ -15,7 +15,7 @@ else:
 
 import pytest
 
-from mock import patch, MagicMock, call, DEFAULT
+from mock import MagicMock, call, DEFAULT
 
 import ss
 
@@ -54,34 +54,34 @@ def test_has_subtitles(tmpdir):
     assert ss.has_subtitle(movie_filename, 'eng', multi=True)
 
 
-def test_query_open_subtitles(tmpdir):
+def test_query_open_subtitles(tmpdir, mock):
     filename = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
 
-    with patch('ss.ServerProxy', autospec=True) as rpc_mock:
-        with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
-            hash_mock.return_value = '13ab'
-            rpc_mock.return_value = server = MagicMock(name='MockServer')
-            server.LogIn.return_value = dict(token='TOKEN')
-            server.SearchSubtitles.return_value = dict(
-                data=[{'SubFileName': 'movie.srt'}])
+    rpc_mock = mock.patch('ss.ServerProxy', autospec=True)
+    hash_mock = mock.patch('ss.calculate_hash_for_file', autospec=True)
+    hash_mock.return_value = '13ab'
+    rpc_mock.return_value = server = MagicMock(name='MockServer')
+    server.LogIn.return_value = dict(token='TOKEN')
+    server.SearchSubtitles.return_value = dict(
+        data=[{'SubFileName': 'movie.srt'}])
 
-            search_results = ss.query_open_subtitles(str(filename), 'eng')
-            rpc_mock.assert_called_once_with(
-                'http://api.opensubtitles.org/xml-rpc', use_datetime=True,
-                allow_none=True, verbose=0)
-            server.LogIn.assert_called_once_with('', '', 'en',
-                                                 'OS Test User Agent')
-            expected_calls = [
-                call('TOKEN',
-                     [dict(query=u'"Drive" "2011"', sublanguageid='eng'),
-                      dict(moviehash='13ab', moviebytesize='0',
-                           sublanguageid='eng')]),
-            ]
+    search_results = ss.query_open_subtitles(str(filename), 'eng')
+    rpc_mock.assert_called_once_with(
+        'http://api.opensubtitles.org/xml-rpc', use_datetime=True,
+        allow_none=True, verbose=0)
+    server.LogIn.assert_called_once_with('', '', 'en',
+                                         'OS Test User Agent')
+    expected_calls = [
+        call('TOKEN',
+             [dict(query=u'"Drive" "2011"', sublanguageid='eng'),
+              dict(moviehash='13ab', moviebytesize='0',
+                   sublanguageid='eng')]),
+    ]
 
-            server.SearchSubtitles.assert_has_calls(expected_calls)
-            server.LogOut.assert_called_once_with('TOKEN')
+    server.SearchSubtitles.assert_has_calls(expected_calls)
+    server.LogOut.assert_called_once_with('TOKEN')
 
-            assert search_results == [{'SubFileName': 'movie.srt'}]
+    assert search_results == [{'SubFileName': 'movie.srt'}]
 
 
 def test_obtain_guessit_query():
@@ -133,66 +133,65 @@ def test_obtain_guessit_query():
     }
 
 
-def test_find_best_subtitles_matches(tmpdir):
+def test_find_best_subtitles_matches(tmpdir, mock):
     movie_filename = str(
         (tmpdir / 'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
 
-    with patch('ss.ServerProxy', autospec=True) as rpc_mock:
-        with patch('ss.calculate_hash_for_file', autospec=True) as hash_mock:
-            hash_mock.return_value = '13ab'
-            rpc_mock.return_value = server = MagicMock(name='MockServer')
-            server.LogIn.return_value = dict(token='TOKEN')
+    server = MagicMock(name='MockServer')
+    mock.patch('ss.ServerProxy', autospec=True, return_value=server)
+    mock.patch('ss.calculate_hash_for_file', autospec=True, return_value='13ab')
+    server.LogIn.return_value = dict(token='TOKEN')
 
-            server.SearchSubtitles.return_value = {
-                'data': [
-                    # OpenSubtitles returned wrong Season: should be skipped
-                    dict(
-                        MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
-                        SubDownloadsCnt='1000',
-                        SubDownloadLink='http://sub99.srt',
-                        SubFormat='srt',
-                        SeriesSeason='4',
-                        SeriesEpisode='13',
-                    ),
-                    # OpenSubtitles returned wrong Episode: should be skipped
-                    dict(
-                        MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
-                        SubDownloadsCnt='1000',
-                        SubDownloadLink='http://sub98.srt',
-                        SubFormat='srt',
-                        SeriesSeason='5',
-                        SeriesEpisode='11',
-                    ),
-                    # First with correct season and episode: winner
-                    dict(
-                        MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
-                        SubDownloadsCnt='1000',
-                        SubDownloadLink='http://sub1.srt',
-                        SubFormat='srt',
-                        SeriesSeason='5',
-                        SeriesEpisode='13',
-                    ),
-                    dict(
-                        MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
-                        SubDownloadsCnt=1500,
-                        SubDownloadLink='http://sub2.srt',
-                        SubFormat='srt',
-                        SeriesSeason='5',
-                        SeriesEpisode='13',
-                    ),
-                    dict(
-                        MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.-LOL.srt',
-                        SubDownloadsCnt=9999,
-                        SubDownloadLink='http://sub3.srt',
-                        SubFormat='srt',
-                        SeriesSeason='5',
-                        SeriesEpisode='13',
-                    ),
-                ]
-            }
+    server.SearchSubtitles.return_value = {
+        'data': [
+            # OpenSubtitles returned wrong Season: should be skipped
+            dict(
+                MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
+                SubDownloadsCnt='1000',
+                SubDownloadLink='http://sub99.srt',
+                SubFormat='srt',
+                SeriesSeason='4',
+                SeriesEpisode='13',
+            ),
+            # OpenSubtitles returned wrong Episode: should be skipped
+            dict(
+                MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
+                SubDownloadsCnt='1000',
+                SubDownloadLink='http://sub98.srt',
+                SubFormat='srt',
+                SeriesSeason='5',
+                SeriesEpisode='11',
+            ),
+            # First with correct season and episode: winner
+            dict(
+                MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
+                SubDownloadsCnt='1000',
+                SubDownloadLink='http://sub1.srt',
+                SubFormat='srt',
+                SeriesSeason='5',
+                SeriesEpisode='13',
+            ),
+            dict(
+                MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt',
+                SubDownloadsCnt=1500,
+                SubDownloadLink='http://sub2.srt',
+                SubFormat='srt',
+                SeriesSeason='5',
+                SeriesEpisode='13',
+            ),
+            dict(
+                MovieReleaseName='Parks.and.Recreation.S05E13.HDTV.-LOL.srt',
+                SubDownloadsCnt=9999,
+                SubDownloadLink='http://sub3.srt',
+                SubFormat='srt',
+                SeriesSeason='5',
+                SeriesEpisode='13',
+            ),
+        ]
+    }
 
-            result = ss.find_subtitle(movie_filename, 'en')
-            assert result == ('http://sub1.srt', '.srt' )
+    result = ss.find_subtitle(movie_filename, 'en')
+    assert result == ('http://sub1.srt', '.srt' )
 
 
 def test_load_configuration(tmpdir):
@@ -214,14 +213,14 @@ def test_load_configuration(tmpdir):
                                       mkv=True)
 
 
-def test_check_mkv_installed():
-    with patch('ss.check_output', autospec=True):
-        assert ss.check_mkv_installed()
-        ss.check_output.assert_called_once_with([u'mkvmerge', u'--version'])
+def test_check_mkv_installed(mock):
+    mock.patch('ss.check_output', autospec=True)
+    assert ss.check_mkv_installed()
+    ss.check_output.assert_called_once_with([u'mkvmerge', u'--version'])
 
-        ss.check_output.side_effect = subprocess.CalledProcessError(256,
-                                                                    'unused')
-        assert not ss.check_mkv_installed()
+    ss.check_output.side_effect = subprocess.CalledProcessError(256,
+                                                                'unused')
+    assert not ss.check_mkv_installed()
 
 
 def test_script_main():
@@ -236,7 +235,7 @@ def test_script_main():
     assert proc.returncode == 2
 
 
-def test_download_subtitle(tmpdir):
+def test_download_subtitle(tmpdir, mock):
     url = 'http://server.com/foo.gz'
     subtitle_filename = str(tmpdir / 'subtitle.srt')
 
@@ -248,15 +247,15 @@ def test_download_subtitle(tmpdir):
     with closing(GzipFile(gzip_filename, 'wb')) as f:
         f.write(sub_contents)
 
-    with patch('ss.urlopen') as urlopen_mock:
-        urlopen_mock.return_value = open(gzip_filename, 'rb')
-        ss.download_subtitle(url, subtitle_filename)
+    urlopen_mock = mock.patch('ss.urlopen')
+    urlopen_mock.return_value = open(gzip_filename, 'rb')
+    ss.download_subtitle(url, subtitle_filename)
 
-        urlopen_mock.assert_called_once_with(url)
+    urlopen_mock.assert_called_once_with(url)
 
-        assert os.path.isfile(subtitle_filename)
-        with open(subtitle_filename, 'rb') as f:
-            assert f.read() == sub_contents
+    assert os.path.isfile(subtitle_filename)
+    with open(subtitle_filename, 'rb') as f:
+        assert f.read() == sub_contents
 
 
 def test_calculate_hash_for_file(tmpdir):
@@ -272,31 +271,31 @@ def test_calculate_hash_for_file(tmpdir):
     assert ss.calculate_hash_for_file(filename) == '010101010108b000'
 
 
-def test_embed_mkv():
-    with patch('subprocess.Popen') as mocked_popen:
-        mocked_popen.return_value = popen = MagicMock()
-        popen.communicate.return_value = ('', '')
-        popen.poll.return_value = 0
+def test_embed_mkv(mock):
+    mocked_popen = mock.patch('subprocess.Popen')
+    mocked_popen.return_value = popen = MagicMock()
+    popen.communicate.return_value = ('', '')
+    popen.poll.return_value = 0
 
-        subtitles = [('eng', u'foo.eng.srt'), ('pob', u'foo.pob.srt')]
-        with patch('ss.convert_language_code_to_iso639_2',
-                   side_effect=['eng', 'por']) as mocked_convert:
-            assert ss.embed_mkv(u'foo.avi', subtitles) == (True, '')
-            mocked_convert.assert_has_calls([call('eng'), call('pob')])
+    subtitles = [('eng', u'foo.eng.srt'), ('pob', u'foo.pob.srt')]
+    mocked_convert = mock.patch('ss.convert_language_code_to_iso639_2',
+               side_effect=['eng', 'por', 'eng'])
+    assert ss.embed_mkv(u'foo.avi', subtitles) == (True, '')
+    mocked_convert.assert_has_calls([call('eng'), call('pob')])
 
-        params = (u'mkvmerge --output foo.mkv foo.avi '
-                  u'--language 0:eng foo.eng.srt '
-                  u'--language 0:por foo.pob.srt').split()
-        mocked_popen.assert_called_once_with(params, shell=True,
-                                             stderr=subprocess.STDOUT,
-                                             stdout=subprocess.PIPE)
-        popen.communicate.assert_called_once()
-        popen.poll.assert_called_once()
+    params = (u'mkvmerge --output foo.mkv foo.avi '
+              u'--language 0:eng foo.eng.srt '
+              u'--language 0:por foo.pob.srt').split()
+    mocked_popen.assert_called_once_with(params, shell=True,
+                                         stderr=subprocess.STDOUT,
+                                         stdout=subprocess.PIPE)
+    popen.communicate.assert_called_once()
+    popen.poll.assert_called_once()
 
-        popen.communicate.return_value = ('failed error', '')
-        popen.poll.return_value = 2
-        assert ss.embed_mkv(u'foo.avi', [('eng', u'foo.srt')]) == (
-        False, 'failed error')
+    popen.communicate.return_value = ('failed error', '')
+    popen.poll.return_value = 2
+    result = ss.embed_mkv(u'foo.avi', [('eng', u'foo.srt')])
+    assert result == (False, 'failed error')
 
 
 def test_normal_execution(runner):
@@ -445,20 +444,19 @@ def test_no_input_files(runner, tmpdir):
     runner.check_output_matches('No files to search subtitles for. Aborting.')
 
 
-@pytest.yield_fixture
-def runner(tmpdir):
-    r = _Runner(tmpdir)
+@pytest.fixture
+def runner(tmpdir, mock):
+    r = _Runner(tmpdir, mock)
     r.start()
-    yield r
-    r.stop()
+    return r
 
 
 class _Runner(object):
-    def __init__(self, tmpdir):
+    def __init__(self, tmpdir, mock):
         self._tmpdir = tmpdir
+        self._mock = mock
         self._movies = set()
         self._subtitles = {}  # movie name to set of subtitle langues
-        self._patchers = dict()
         self.configuration = ss.Configuration(mkv=False)
         self.output = None
         self.downloaded = set()
@@ -480,24 +478,12 @@ class _Runner(object):
 
 
     def start(self):
-        self._patchers = patch.multiple(
-            ss,
-            query_open_subtitles=DEFAULT,
-            download_subtitle=DEFAULT,
-            load_configuration=DEFAULT,
-            embed_mkv=DEFAULT,
-            check_mkv_installed=DEFAULT,
-        ).start()
-        self._patchers['query_open_subtitles'].side_effect = self._mock_query
-        self._patchers['download_subtitle'].side_effect = self._mock_download
-        self._patchers['load_configuration'].return_value = self.configuration
-        self._patchers['embed_mkv'].side_effect = self._mock_embed_mkv
-        self._patchers['check_mkv_installed'].return_value = True
-
-
-    def stop(self):
-        for p in self._patchers.values():
-            p.stop()
+        p = self._mock.patch
+        p('ss.query_open_subtitles', side_effect=self._mock_query)
+        p('ss.download_subtitle', side_effect=self._mock_download)
+        p('ss.load_configuration', return_value=self.configuration)
+        p('ss.embed_mkv', side_effect=self._mock_embed_mkv)
+        p('ss.check_mkv_installed', return_value=True)
 
 
     def _mock_download(self, url, name):
