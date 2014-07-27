@@ -17,7 +17,9 @@ Command line script for searching video subtitles using
 - **Recursive search**: Automatically search for all videos inside a directory, making it 
   easy to download subtitles for TV shows packs. 
 - **Multiple languages**: Search for more than one or more subtitle languages.
-- **MKV embedding**: Can automatically create an MKV with the embeded subtitles: a single file contains all subtitles, which is easier to carry around.
+- **MKV embedding**: Can automatically create an MKV with the embeded 
+  subtitles: a single file contains all subtitles, which is easier to carry around.
+  Requires [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix).
 
 ## Install ##
 
@@ -31,11 +33,11 @@ pip install ss
 
 - Python 2.6+, 3.3+, PyPy.
 - [guessit](https://github.com/wackou/guessit).
+- [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix) (optional).
 
 ## Usage ##
 
-Just pass the name of the video file or a directory, in which case it will
-search for all video files in that directory:
+Pass the name of one or more video files or directories:
 
 ```bash
 $ python ss.py Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4 The.Mentalist.S05E14.HDTV.x264-LOL.mp4
@@ -50,33 +52,20 @@ Downloading...
  - The.Mentalist.S05E14.HDTV.x264-LOL.srt                             DONE
 ``` 
 
-It will try to find the best match online, and automatically download and rename the subtitles.
+It will try to find the best match online, and automatically download and 
+move the subtitles to the same folder as the video files.
 
 ### Configuration ###
 
-You can see the current configuration by executing `ss` with the `--verbose`
-parameter:
-
-```bash
-$ python ss.py --verbose
-Configuration read from ~/.ss.ini
-languages = eng, pob
-recursive = False
-skip = True
-mkv = True
-
-Usage: ss [options] <file or dir> <file or dir>...
-...
-```
-
-Configuration is read from `~/.ss.ini`, which is a standard `ini` file:
+Configuration is stored in `~/ss.ini` (`C:\Users\<user>\ss.ini` on Windows in
+a standard `ini` file:
 
 ```ini
 [ss]
 languages=eng, pob
 recursive=yes
 skip=yes
-mkv=False
+mkv=no
 ```
 
 The following options are available:
@@ -85,20 +74,18 @@ The following options are available:
   separated by commas. Use the same codes as when you change search languages.
   For a full list, see http://www.opensubtitles.org/addons/export_languages.php.
 
-* `recursive`: if directories should be recursively searched for movies.
+* `recursive`: if directories should be recursively searched for movies (`yes|no`). 
 
-* `skip`: if movies that already have subtitles should be skipped. If this is 0 and a movie 
-  already has subtitles, `ss` won't overwrite the current subtitle, but generate a file using
-  the language as suffix; if that also already exists, it will use an additional *"ss"* prefix.
+* `skip`: if movies that already have subtitles should be skipped (`yes|no`).
 
 * `mkv`: if True, it will automatically create a [mkv](http://www.matroska.org/)
-  file with video and subtitles embeded. Requires [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
-  to be available in the `$PATH` environment variable.
+  file with embedded video and subtitles. Utility [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
+  must be available in the `$PATH` environment variable.
 
 
 ## Support ##
 
-If you find any issues (not finding subtitles for a specific movie, errors, etc.), please report it in the 
+If you find any issues, please report it in the 
 [issues page](https://github.com/nicoddemus/ss/issues).
 
 
