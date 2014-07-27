@@ -6,7 +6,7 @@ from setuptools import setup
 description = "Command line script that automatically searches for video subtitles using OpenSubtitles.org APIs."
 long_description = ''
 
-dependencies = ['guessit>=0.7.1']
+dependencies = ['guessit>=0.7.1', 'colorama']
 if sys.version_info <= (3, 1):
     dependencies.append('futures')
 
