@@ -1,7 +1,14 @@
+import sys
+
 from setuptools import setup
+
 
 description = "Command line script that automatically searches for video subtitles using OpenSubtitles.org APIs."
 long_description = ''
+
+dependencies = ['guessit>=0.7.1']
+if sys.version_info <= (3, 1):
+    dependencies.append('futures')
 
 setup(
     name="ss",
@@ -9,7 +16,7 @@ setup(
     packages=[],
     scripts=['ss.py'],
     py_modules=['ss'],
-    install_requires=[x.strip() for x in open('requirements.txt')],
+    install_requires=dependencies,
     entry_points={'console_scripts': ['ss = ss:main']},
 
     # metadata for upload to PyPI

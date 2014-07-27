@@ -57,7 +57,7 @@ move the subtitles to the same folder as the video files.
 
 ### Configuration ###
 
-Configuration is stored in `~/ss.ini` (`C:\Users\<user>\ss.ini` on Windows in
+Configuration is stored in `~/.ss.ini` (`C:\Users\<user>\ss.ini` on Windows in
 a standard `ini` file:
 
 ```ini

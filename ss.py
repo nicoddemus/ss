@@ -6,19 +6,19 @@ import os
 import shutil
 import struct
 import tempfile
-import time
 import sys
-
-import guessit
 import subprocess
 import itertools
+import concurrent.futures
+
+import guessit
 
 
 if sys.version_info[0] == 3: # pragma: no cover
     from urllib.request import urlopen
     from xmlrpc.client import ServerProxy
     from configparser import RawConfigParser
-else: # pragma: no cover
+else:  # pragma: no cover
     from urllib import urlopen
     from xmlrpclib import Server as ServerProxy
     from ConfigParser import RawConfigParser
@@ -333,37 +333,49 @@ def main(argv=sys.argv, stream=sys.stdout):
 
     matches = []
     to_query = sorted(to_query)
-    for movie_filename, language in to_query:
-        subtitle_url, subtitle_ext = find_subtitle(movie_filename,
-                                                   language=language)
-        if subtitle_url:
-            status = 'OK'
-        else:
-            status = 'No matches found.'
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        future_to_movie_and_language = {}
+        for movie_filename, language in to_query:
+            f = executor.submit(find_subtitle, movie_filename, language=language)
+            future_to_movie_and_language[f] = (movie_filename, language)
 
-        print_status(
-            '- %s (%s)' % (os.path.basename(movie_filename), language),
-            status)
+        for future in concurrent.futures.as_completed(future_to_movie_and_language):
+            movie_filename, language = future_to_movie_and_language[future]
+            subtitle_url, subtitle_ext = future.result()
+            if subtitle_url:
+                status = 'OK'
+            else:
+                status = 'No matches found.'
 
-        if subtitle_url:
-            subtitle_filename = obtain_subtitle_filename(movie_filename,
-                                                         language,
-                                                         subtitle_ext,
-                                                         multi=multi)
+            print_status(
+                '- %s (%s)' % (os.path.basename(movie_filename), language),
+                status)
 
-            match = (movie_filename, subtitle_url, subtitle_ext,
-                     subtitle_filename, language)
+            if subtitle_url:
+                subtitle_filename = obtain_subtitle_filename(movie_filename,
+                                                             language,
+                                                             subtitle_ext,
+                                                             multi=multi)
 
-            matches.append(match)
+                match = (movie_filename, subtitle_url, subtitle_ext,
+                         subtitle_filename, language)
+
+                matches.append(match)
 
     if not matches:
         return 0
 
     print('', file=stream)
     print('Downloading...', file=stream)
-    for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename, language) in matches:
-        download_subtitle(subtitle_url, subtitle_filename)
-        print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        future_to_subtitle_filename = {}
+        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename, language) in matches:
+            f = executor.submit(download_subtitle, subtitle_url, subtitle_filename)
+            future_to_subtitle_filename[f] = subtitle_filename
+
+        for future in concurrent.futures.as_completed(future_to_subtitle_filename):
+            subtitle_filename = future_to_subtitle_filename[future]
+            print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
     if config.mkv:
         print('', file=stream)

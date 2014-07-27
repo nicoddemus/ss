@@ -8,7 +8,7 @@ python:
   - "pypy"
 
 install:
-  - pip install coveralls pytest-mock mock --use-wheel
+  - pip install coveralls pytest-mock --use-wheel
 
 script:
   - python setup.py develop
