@@ -1,7 +1,5 @@
 # Subtitle Searcher - SS #
 
-## Introduction ##
-
 Command line script for searching video subtitles using 
 [OpenSubtitles.org](http://www.opensubtitles.org ) APIs.
 
@@ -12,7 +10,7 @@ Command line script for searching video subtitles using
 [![ci](http://img.shields.io/travis/nicoddemus/ss.svg)](https://travis-ci.org/nicoddemus/ss)
 [![coverage](http://img.shields.io/coveralls/nicoddemus/ss.svg)](https://coveralls.io/r/nicoddemus/ss)
 
-### Features ###
+## Features ##
 
 - **Recursive search**: Automatically search for all videos inside a directory, making it 
   easy to download subtitles for TV shows packs. 
