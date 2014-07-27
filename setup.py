@@ -12,7 +12,7 @@ if sys.version_info <= (3, 1):
 
 setup(
     name="ss",
-    version="1.4.2",
+    version="1.5.0",
     packages=[],
     scripts=['ss.py'],
     py_modules=['ss'],

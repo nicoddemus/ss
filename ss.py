@@ -11,15 +11,14 @@ import subprocess
 import itertools
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from colorama import init, Fore, Back, Style
+from colorama import init, Fore, Style
 import guessit
 
 
 init(autoreset=True)
 
 
-
-__version__ = '1.4.2'
+__version__ = '1.5.0'
 
 if sys.version_info[0] == 3: # pragma: no cover
     from urllib.request import urlopen
