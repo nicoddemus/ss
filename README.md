@@ -2,26 +2,22 @@
 
 ## Introduction ##
 
-This is a command line script that automatically searches for video 
-subtitles using [OpenSubtitles.org](http://www.opensubtitles.org ) APIs.
+Command line script for searching video subtitles using 
+[OpenSubtitles.org](http://www.opensubtitles.org ) APIs.
 
 ![OpenSubtitles.org](http://static.opensubtitles.org/gfx/logo-transparent.png)
-
-One advantage is that it can automatically search for all videos inside a directory, making it 
-easy to download subtitles for TV shows packs. Also, it can usually be configured by any download 
-manager to automatically execute it when a movie or video finishes.
-
-**Latest Release**: [1.4.2](https://github.com/nicoddemus/ss/releases/tag/1.4.2)
 
 [![version](http://img.shields.io/pypi/v/ss.svg)](https://crate.io/packages/ss)
 [![downloads](http://img.shields.io/pypi/dm/ss.svg)](https://crate.io/packages/ss/)
 [![ci](http://img.shields.io/travis/nicoddemus/ss.svg)](https://travis-ci.org/nicoddemus/ss)
 [![coverage](http://img.shields.io/coveralls/nicoddemus/ss.svg)](https://coveralls.io/r/nicoddemus/ss)
 
-## Requirements ##
+### Features ###
 
-Python 2.6, 2.7, 3.3, 3.4 or PyPy.
-Also uses the [guessit](https://github.com/wackou/guessit) package.
+- **Recursive search**: Automatically search for all videos inside a directory, making it 
+  easy to download subtitles for TV shows packs. 
+- **Multiple languages**: Search for more than one or more subtitle languages.
+- **MKV embedding**: Can automatically create an MKV with the embeded subtitles: a single file contains all subtitles, which is easier to carry around.
 
 ## Install ##
 
@@ -31,28 +27,27 @@ Install using [pip](http://www.pip-installer.org):
 pip install ss
 ```
 
-Or if you download the source, execute on the extracted folder:
+## Requirements ##
 
-```bash
-python setup.py install
-```
+- Python 2.6+, 3.3+, PyPy.
+- [guessit](https://github.com/wackou/guessit).
 
 ## Usage ##
 
 Just pass the name of the video file or a directory, in which case it will
 search for all video files in that directory:
 
-```
-    ] python ss.py Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4 The.Mentalist.S05E14.HDTV.x264-LOL.mp4
-    Language: eng
-    Querying OpenSubtitles.org for 2 file(s)...
-    
-    - Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4                       OK
-    - The.Mentalist.S05E14.HDTV.x264-LOL.mp4                              OK
-    
-    Downloading...
-     - Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt                      DONE
-     - The.Mentalist.S05E14.HDTV.x264-LOL.srt                             DONE
+```bash
+$ python ss.py Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4 The.Mentalist.S05E14.HDTV.x264-LOL.mp4
+Language: eng
+Querying OpenSubtitles.org for 2 file(s)...
+
+- Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4                       OK
+- The.Mentalist.S05E14.HDTV.x264-LOL.mp4                              OK
+
+Downloading...
+ - Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt                      DONE
+ - The.Mentalist.S05E14.HDTV.x264-LOL.srt                             DONE
 ``` 
 
 It will try to find the best match online, and automatically download and rename the subtitles.
@@ -63,7 +58,7 @@ You can see the current configuration by executing `ss` with the `--verbose`
 parameter:
 
 ```bash
-] python ss.py --verbose
+$ python ss.py --verbose
 Configuration read from ~/.ss.ini
 languages = eng, pob
 recursive = False
