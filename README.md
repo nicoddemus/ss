@@ -37,18 +37,7 @@ pip install ss
 
 Pass the name of one or more video files or directories:
 
-```bash
-$ python ss.py Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4 The.Mentalist.S05E14.HDTV.x264-LOL.mp4
-Language: eng
-Querying OpenSubtitles.org for 2 file(s)...
-
-- Parks.and.Recreation.S05E13.HDTV.x264-LOL.mp4                       OK
-- The.Mentalist.S05E14.HDTV.x264-LOL.mp4                              OK
-
-Downloading...
- - Parks.and.Recreation.S05E13.HDTV.x264-LOL.srt                      DONE
- - The.Mentalist.S05E14.HDTV.x264-LOL.srt                             DONE
-``` 
+![screenshot](images/screenshot.png)
 
 It will try to find the best match online, and automatically download and 
 move the subtitles to the same folder as the video files.
