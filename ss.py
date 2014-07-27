@@ -386,19 +386,26 @@ def main(argv=sys.argv, stream=sys.stdout):
             to_embed.setdefault(movie_filename, []).append((language,
                                                             subtitle_filename))
         to_embed = sorted(to_embed.items())
-        for movie_filename, subtitles in to_embed:
-            movie_ext = os.path.splitext(movie_filename)[1].lower()
-            mkv_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
-            if movie_ext != u'.mkv' and not os.path.isfile(mkv_filename):
-                status, output = embed_mkv(movie_filename, sorted(subtitles))
+        with ThreadPoolExecutor(max_workers=config.parallel_jobs) as executor:
+            future_to_mkv_filename = {}
+            for movie_filename, subtitles in to_embed:
+                movie_ext = os.path.splitext(movie_filename)[1].lower()
+                mkv_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+                if movie_ext != u'.mkv' and not os.path.isfile(mkv_filename):
+                    f = executor.submit(embed_mkv, movie_filename, subtitles)
+                    future_to_mkv_filename[f] = (mkv_filename, movie_filename)
+                else:
+                    print_status(' - %s' % os.path.basename(mkv_filename),
+                                 'skipped')
+
+            for future in as_completed(future_to_mkv_filename):
+                mkv_filename, movie_filename = future_to_mkv_filename[future]
+                status, output = future.result()
                 if not status:
                     failures.append((movie_filename, output))
                 status = 'DONE' if status else 'ERROR'
                 print_status(' - %s' % os.path.basename(mkv_filename),
                              status)
-            else:
-                print_status(' - %s' % os.path.basename(mkv_filename),
-                             'skipped')
 
         if failures:
             print('_' * 80, file=stream)
@@ -416,7 +423,7 @@ def embed_mkv(movie_filename, subtitles):
         u'--output', output_filename,
         movie_filename,
     ]
-    for language, subtitle_filename in subtitles:
+    for language, subtitle_filename in sorted(subtitles):
         iso_language = convert_language_code_to_iso639_2(language)
         params.extend([
             u'--language', u'0:{0}'.format(iso_language),
