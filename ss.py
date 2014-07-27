@@ -9,9 +9,15 @@ import tempfile
 import sys
 import subprocess
 import itertools
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from colorama import init, Fore, Back, Style
 import guessit
+
+
+init(autoreset=True)
+
+
 
 __version__ = '1.4.2'
 
@@ -322,7 +328,14 @@ def main(argv=sys.argv, stream=sys.stdout):
                   'in your config.', file=stream)
             return 4
 
-    print('Languages: %s' % ', '.join(config.languages), file=stream)
+    header = Fore.WHITE + Style.BRIGHT
+    lang_style = Fore.CYAN + Style.BRIGHT
+    languages = ', '.join(
+        lang_style + x + Style.RESET_ALL for x in config.languages)
+    msg = '{header}Languages: {languages}'.format(header=header,
+                                                  languages=languages)
+    print(msg, file=stream)
+    print(file=stream)
 
     multi = len(config.languages) > 1
 
@@ -337,9 +350,9 @@ def main(argv=sys.argv, stream=sys.stdout):
             print('Skipping %d subtitles.' % len(to_skip), file=stream)
 
     def print_status(text, status):
-        spaces = 70 - len(text)
-        spaces = spaces if spaces >= 2 else 2
-        print('%s%s%s' % (text, ' ' * spaces, status), file=stream)
+        spaces = max(70 - len(text), 2)
+        print('{text}{spaces}{status}'.format(
+            text=text, spaces=' ' * spaces, status=status), file=stream)
 
     to_query = set(itertools.product(input_filenames, config.languages))
     to_query.difference_update(to_skip)
@@ -347,8 +360,9 @@ def main(argv=sys.argv, stream=sys.stdout):
     if not to_query:
         return 0
 
-    print('Downloading...', file=stream)
-    print('', file=stream)
+    header_style = Fore.WHITE + Style.BRIGHT
+    print(header_style + 'Downloading', file=stream)
+    print(file=stream)
 
     matches = []
     to_query = sorted(to_query)
@@ -363,22 +377,25 @@ def main(argv=sys.argv, stream=sys.stdout):
         for future in as_completed(future_to_movie_and_language):
             movie_filename, language = future_to_movie_and_language[future]
             subtitle_filename = future.result()
+
             if subtitle_filename:
-                status = 'OK'
+                status = Fore.GREEN + '[OK]'
                 matches.append((movie_filename, language, subtitle_filename))
             else:
-                status = 'Not found'
+                status = Fore.RED + '[Not found]'
 
+            name = os.path.basename(movie_filename)
             print_status(
-                '- %s (%s)' % (os.path.basename(movie_filename), language),
-                status)
-
-    if not matches:
-        return 0
+                name,
+                status='{lang_color}{lang} {status}'.format(
+                    lang_color=Fore.CYAN + Style.BRIGHT,
+                    lang=language,
+                    status=status))
 
     if config.mkv:
-        print('', file=stream)
-        print('Embedding MKV...', file=stream)
+        print(file=stream)
+        print(header_style + 'Embedding MKV', file=stream)
+        print(file=stream)
         failures = []  # list of (movie_filename, output)
         to_embed = {}  # dict of movie -> (language, subtitle_filename)
         for movie_filename, language, subtitle_filename in matches:
@@ -395,17 +412,17 @@ def main(argv=sys.argv, stream=sys.stdout):
                     f = executor.submit(embed_mkv, movie_filename, subtitles)
                     future_to_mkv_filename[f] = (mkv_filename, movie_filename)
                 else:
-                    print_status(' - %s' % os.path.basename(mkv_filename),
-                                 'skipped')
+                    print_status(os.path.basename(mkv_filename),
+                                 Style.BRIGHT + Fore.YELLOW + '[skipped]')
 
             for future in as_completed(future_to_mkv_filename):
                 mkv_filename, movie_filename = future_to_mkv_filename[future]
                 status, output = future.result()
                 if not status:
                     failures.append((movie_filename, output))
-                status = 'DONE' if status else 'ERROR'
-                print_status(' - %s' % os.path.basename(mkv_filename),
-                             status)
+                status = Fore.GREEN + '[OK]' if status else Fore.RED + '[ERROR]'
+                status = Style.BRIGHT + status
+                print_status(os.path.basename(mkv_filename), status)
 
         if failures:
             print('_' * 80, file=stream)

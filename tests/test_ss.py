@@ -365,7 +365,7 @@ def test_mkv(tmpdir, runner):
         ],
     )
 
-    assert 'Embedding MKV...' in runner.output
+    runner.check_output_matches('Embedding MKV')
     runner.check_files('serieS01E01.avi', 'serieS01E01.pob.srt',
                        'serieS01E01.eng.srt', 'serieS01E01.mkv')
 
@@ -436,17 +436,17 @@ def test_mkv_with_subtitles_already_inplace(runner, tmpdir):
     runner.register('serieS01E01.avi', ['eng'])
     runner.configuration.mkv = True
     assert runner.run('serieS01E01.avi') == 0
-    runner.check_output_matches(r' - serieS01E01.mkv \s+ DONE')
+    runner.check_output_matches(r'serieS01E01.mkv.*\[OK\]')
     runner.check_files('serieS01E01.avi', 'serieS01E01.srt', 'serieS01E01.mkv')
 
     assert runner.run('serieS01E01.avi') == 0
-    runner.check_output_matches(r' - serieS01E01.mkv \s+ skipped')
+    runner.check_output_matches(r'serieS01E01.mkv.*\[skipped\]')
 
 
 def test_no_matches(runner, tmpdir):
     tmpdir.join('movie.avi').ensure()
     assert runner.run('movie.avi') == 0
-    runner.check_output_matches(r'- movie.avi \(eng\) \s+ Not found')
+    runner.check_output_matches(r'movie.avi.*[Not found]')
 
 
 def test_no_input_files(runner, tmpdir):
