@@ -214,6 +214,15 @@ def test_load_configuration(tmpdir):
                                       mkv=True, parallel_jobs=4)
 
 
+def test_configuration():
+    assert ss.Configuration() == ss.Configuration()
+    assert ss.Configuration(languages=['br']) != ss.Configuration()
+    assert ss.Configuration(recursive=True) != ss.Configuration()
+    assert ss.Configuration(mkv=True) != ss.Configuration()
+    assert ss.Configuration(skip=True) != ss.Configuration()
+    assert ss.Configuration(parallel_jobs=3) != ss.Configuration()
+
+
 def test_check_mkv_installed(mock):
     mock.patch('ss.check_output', autospec=True)
     assert ss.check_mkv_installed()

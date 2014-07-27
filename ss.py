@@ -365,14 +365,13 @@ def main(argv=sys.argv, stream=sys.stdout):
             subtitle_filename = future.result()
             if subtitle_filename:
                 status = 'OK'
+                matches.append((movie_filename, language, subtitle_filename))
             else:
                 status = 'Not found'
 
             print_status(
                 '- %s (%s)' % (os.path.basename(movie_filename), language),
                 status)
-
-            matches.append((movie_filename, language, subtitle_filename))
 
     if not matches:
         return 0
