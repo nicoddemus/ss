@@ -205,12 +205,22 @@ def test_load_configuration(tmpdir):
             'recursive = yes',
             'skip = on',
             'mkv = 1',
+            'parallel_jobs = 4',
         ]
         f.write('\n'.join(lines))
 
     loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
     assert loaded == ss.Configuration(['br'], recursive=True, skip=True,
-                                      mkv=True)
+                                      mkv=True, parallel_jobs=4)
+
+
+def test_configuration():
+    assert ss.Configuration() == ss.Configuration()
+    assert ss.Configuration(languages=['br']) != ss.Configuration()
+    assert ss.Configuration(recursive=True) != ss.Configuration()
+    assert ss.Configuration(mkv=True) != ss.Configuration()
+    assert ss.Configuration(skip=True) != ss.Configuration()
+    assert ss.Configuration(parallel_jobs=3) != ss.Configuration()
 
 
 def test_check_mkv_installed(mock):
@@ -436,7 +446,7 @@ def test_mkv_with_subtitles_already_inplace(runner, tmpdir):
 def test_no_matches(runner, tmpdir):
     tmpdir.join('movie.avi').ensure()
     assert runner.run('movie.avi') == 0
-    runner.check_output_matches(r'- movie.avi \(eng\) \s+ No matches found.')
+    runner.check_output_matches(r'- movie.avi \(eng\) \s+ Not found')
 
 
 def test_no_input_files(runner, tmpdir):

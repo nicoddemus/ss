@@ -6,19 +6,20 @@ import os
 import shutil
 import struct
 import tempfile
-import time
 import sys
-
-import guessit
 import subprocess
 import itertools
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import guessit
+
+__version__ = '1.4.2'
 
 if sys.version_info[0] == 3: # pragma: no cover
     from urllib.request import urlopen
     from xmlrpc.client import ServerProxy
     from configparser import RawConfigParser
-else: # pragma: no cover
+else:  # pragma: no cover
     from urllib import urlopen
     from xmlrpclib import Server as ServerProxy
     from ConfigParser import RawConfigParser
@@ -170,6 +171,19 @@ def has_subtitle(filename, language, multi):
     return False
 
 
+def search_and_download(movie_filename, language, multi):
+    subtitle_url, subtitle_ext = find_subtitle(movie_filename, language=language)
+    if subtitle_url:
+        subtitle_filename = obtain_subtitle_filename(movie_filename,
+                                                     language,
+                                                     subtitle_ext,
+                                                     multi=multi)
+        download_subtitle(subtitle_url, subtitle_filename)
+        return subtitle_filename
+    else:
+        return None
+
+
 def load_configuration(filename):
     p = RawConfigParser()
     p.add_section('ss')
@@ -184,6 +198,7 @@ def load_configuration(filename):
     read_if_defined('recursive', 'getboolean')
     read_if_defined('skip', 'getboolean')
     read_if_defined('mkv', 'getboolean')
+    read_if_defined('parallel_jobs', 'getint')
 
     if p.has_option('ss', 'languages'):
         value = p.get('ss', 'languages')
@@ -238,25 +253,29 @@ def calculate_hash_for_file(name):
 
 class Configuration(object):
 
-    def __init__(self, languages=('eng',), recursive=False, skip=False, mkv=False):
+    attrs = 'languages recursive skip mkv parallel_jobs'.split()
+
+    def __init__(self, languages=('eng',), recursive=False, skip=False,
+                 mkv=False, parallel_jobs=8):
         self.languages = list(languages)
         self.recursive = recursive
         self.skip = skip
         self.mkv = mkv
+        self.parallel_jobs = parallel_jobs
 
     def __eq__(self, other):
-        return \
-            self.languages == other.languages and \
-            self.recursive == other.recursive and \
-            self.skip == other.skip and \
-            self.mkv == other.mkv
+        for attr in self.attrs:
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
 
     def __ne__(self, other):  # pragma: no cover
         return not self == other
 
     def __repr__(self):  # pragma: no cover
-        return 'Configuration(languages="%s", recursive=%s, skip=%s, mkv=%s)' % \
-               (self.languages, self.recursive, self.skip, self.mkv)
+        pairs = ['{attr}={value}'.format(attr=attr, value=getattr(self, attr))
+                 for attr in self.attrs]
+        return 'Configuration({0})'.format(', '.join(pairs))
 
     def __str__(self):
         values = [
@@ -264,10 +283,10 @@ class Configuration(object):
             'recursive = %s' % self.recursive,
             'skip = %s' % self.skip,
             'mkv = %s' % self.mkv,
+            'parallel_jobs = %d' % self.parallel_jobs,
         ]
         return '\n'.join(values)
 
-__version__ = '1.4.2'
 
 def main(argv=sys.argv, stream=sys.stdout):
     parser = optparse.OptionParser(
@@ -328,66 +347,65 @@ def main(argv=sys.argv, stream=sys.stdout):
     if not to_query:
         return 0
 
-    print('Querying OpenSubtitles.org...', file=stream)
+    print('Downloading...', file=stream)
     print('', file=stream)
 
     matches = []
     to_query = sorted(to_query)
-    for movie_filename, language in to_query:
-        subtitle_url, subtitle_ext = find_subtitle(movie_filename,
-                                                   language=language)
-        if subtitle_url:
-            status = 'OK'
-        else:
-            status = 'No matches found.'
 
-        print_status(
-            '- %s (%s)' % (os.path.basename(movie_filename), language),
-            status)
+    with ThreadPoolExecutor(max_workers=config.parallel_jobs) as executor:
+        future_to_movie_and_language = {}
+        for movie_filename, language in to_query:
+            f = executor.submit(search_and_download, movie_filename,
+                                language=language, multi=multi)
+            future_to_movie_and_language[f] = (movie_filename, language)
 
-        if subtitle_url:
-            subtitle_filename = obtain_subtitle_filename(movie_filename,
-                                                         language,
-                                                         subtitle_ext,
-                                                         multi=multi)
+        for future in as_completed(future_to_movie_and_language):
+            movie_filename, language = future_to_movie_and_language[future]
+            subtitle_filename = future.result()
+            if subtitle_filename:
+                status = 'OK'
+                matches.append((movie_filename, language, subtitle_filename))
+            else:
+                status = 'Not found'
 
-            match = (movie_filename, subtitle_url, subtitle_ext,
-                     subtitle_filename, language)
-
-            matches.append(match)
+            print_status(
+                '- %s (%s)' % (os.path.basename(movie_filename), language),
+                status)
 
     if not matches:
         return 0
-
-    print('', file=stream)
-    print('Downloading...', file=stream)
-    for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename, language) in matches:
-        download_subtitle(subtitle_url, subtitle_filename)
-        print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
     if config.mkv:
         print('', file=stream)
         print('Embedding MKV...', file=stream)
         failures = []  # list of (movie_filename, output)
         to_embed = {}  # dict of movie -> (language, subtitle_filename)
-        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename,
-             language) in matches:
+        for movie_filename, language, subtitle_filename in matches:
             to_embed.setdefault(movie_filename, []).append((language,
                                                             subtitle_filename))
         to_embed = sorted(to_embed.items())
-        for movie_filename, subtitles in to_embed:
-            movie_ext = os.path.splitext(movie_filename)[1].lower()
-            mkv_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
-            if movie_ext != u'.mkv' and not os.path.isfile(mkv_filename):
-                status, output = embed_mkv(movie_filename, sorted(subtitles))
+        with ThreadPoolExecutor(max_workers=config.parallel_jobs) as executor:
+            future_to_mkv_filename = {}
+            for movie_filename, subtitles in to_embed:
+                subtitles.sort()
+                movie_ext = os.path.splitext(movie_filename)[1].lower()
+                mkv_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
+                if movie_ext != u'.mkv' and not os.path.isfile(mkv_filename):
+                    f = executor.submit(embed_mkv, movie_filename, subtitles)
+                    future_to_mkv_filename[f] = (mkv_filename, movie_filename)
+                else:
+                    print_status(' - %s' % os.path.basename(mkv_filename),
+                                 'skipped')
+
+            for future in as_completed(future_to_mkv_filename):
+                mkv_filename, movie_filename = future_to_mkv_filename[future]
+                status, output = future.result()
                 if not status:
                     failures.append((movie_filename, output))
                 status = 'DONE' if status else 'ERROR'
                 print_status(' - %s' % os.path.basename(mkv_filename),
                              status)
-            else:
-                print_status(' - %s' % os.path.basename(mkv_filename),
-                             'skipped')
 
         if failures:
             print('_' * 80, file=stream)
@@ -405,7 +423,7 @@ def embed_mkv(movie_filename, subtitles):
         u'--output', output_filename,
         movie_filename,
     ]
-    for language, subtitle_filename in subtitles:
+    for language, subtitle_filename in sorted(subtitles):
         iso_language = convert_language_code_to_iso639_2(language)
         params.extend([
             u'--language', u'0:{0}'.format(iso_language),

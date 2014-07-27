@@ -57,7 +57,7 @@ move the subtitles to the same folder as the video files.
 
 ### Configuration ###
 
-Configuration is stored in `~/ss.ini` (`C:\Users\<user>\ss.ini` on Windows in
+Configuration is stored in `~/.ss.ini` (`C:\Users\<user>\ss.ini` on Windows in
 a standard `ini` file:
 
 ```ini
@@ -81,6 +81,9 @@ The following options are available:
 * `mkv`: if True, it will automatically create a [mkv](http://www.matroska.org/)
   file with embedded video and subtitles. Utility [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
   must be available in the `$PATH` environment variable.
+
+* `parallel_jobs`: number of concurrent threads used to download subtitles.
+  Defaults to `8`.
 
 
 ## Support ##
