@@ -388,6 +388,7 @@ def main(argv=sys.argv, stream=sys.stdout):
         with ThreadPoolExecutor(max_workers=config.parallel_jobs) as executor:
             future_to_mkv_filename = {}
             for movie_filename, subtitles in to_embed:
+                subtitles.sort()
                 movie_ext = os.path.splitext(movie_filename)[1].lower()
                 mkv_filename = os.path.splitext(movie_filename)[0] + u'.mkv'
                 if movie_ext != u'.mkv' and not os.path.isfile(mkv_filename):
