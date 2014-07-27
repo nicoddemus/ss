@@ -436,7 +436,7 @@ def test_mkv_with_subtitles_already_inplace(runner, tmpdir):
 def test_no_matches(runner, tmpdir):
     tmpdir.join('movie.avi').ensure()
     assert runner.run('movie.avi') == 0
-    runner.check_output_matches(r'- movie.avi \(eng\) \s+ No matches found.')
+    runner.check_output_matches(r'- movie.avi \(eng\) \s+ Not found')
 
 
 def test_no_input_files(runner, tmpdir):

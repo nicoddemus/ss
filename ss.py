@@ -9,7 +9,7 @@ import tempfile
 import sys
 import subprocess
 import itertools
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import guessit
 
@@ -170,6 +170,19 @@ def has_subtitle(filename, language, multi):
     return False
 
 
+def search_and_download(movie_filename, language, multi):
+    subtitle_url, subtitle_ext = find_subtitle(movie_filename, language=language)
+    if subtitle_url:
+        subtitle_filename = obtain_subtitle_filename(movie_filename,
+                                                     language,
+                                                     subtitle_ext,
+                                                     multi=multi)
+        download_subtitle(subtitle_url, subtitle_filename)
+        return subtitle_filename
+    else:
+        return None
+
+
 def load_configuration(filename):
     p = RawConfigParser()
     p.add_section('ss')
@@ -328,62 +341,42 @@ def main(argv=sys.argv, stream=sys.stdout):
     if not to_query:
         return 0
 
-    print('Querying OpenSubtitles.org...', file=stream)
+    print('Downloading...', file=stream)
     print('', file=stream)
 
     matches = []
     to_query = sorted(to_query)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
         future_to_movie_and_language = {}
         for movie_filename, language in to_query:
-            f = executor.submit(find_subtitle, movie_filename, language=language)
+            f = executor.submit(search_and_download, movie_filename,
+                                language=language, multi=multi)
             future_to_movie_and_language[f] = (movie_filename, language)
 
-        for future in concurrent.futures.as_completed(future_to_movie_and_language):
+        for future in as_completed(future_to_movie_and_language):
             movie_filename, language = future_to_movie_and_language[future]
-            subtitle_url, subtitle_ext = future.result()
-            if subtitle_url:
+            subtitle_filename = future.result()
+            if subtitle_filename:
                 status = 'OK'
             else:
-                status = 'No matches found.'
+                status = 'Not found'
 
             print_status(
                 '- %s (%s)' % (os.path.basename(movie_filename), language),
                 status)
 
-            if subtitle_url:
-                subtitle_filename = obtain_subtitle_filename(movie_filename,
-                                                             language,
-                                                             subtitle_ext,
-                                                             multi=multi)
-
-                match = (movie_filename, subtitle_url, subtitle_ext,
-                         subtitle_filename, language)
-
-                matches.append(match)
+            matches.append((movie_filename, language, subtitle_filename))
 
     if not matches:
         return 0
-
-    print('', file=stream)
-    print('Downloading...', file=stream)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        future_to_subtitle_filename = {}
-        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename, language) in matches:
-            f = executor.submit(download_subtitle, subtitle_url, subtitle_filename)
-            future_to_subtitle_filename[f] = subtitle_filename
-
-        for future in concurrent.futures.as_completed(future_to_subtitle_filename):
-            subtitle_filename = future_to_subtitle_filename[future]
-            print_status(' - %s' % os.path.basename(subtitle_filename), 'DONE')
 
     if config.mkv:
         print('', file=stream)
         print('Embedding MKV...', file=stream)
         failures = []  # list of (movie_filename, output)
         to_embed = {}  # dict of movie -> (language, subtitle_filename)
-        for (movie_filename, subtitle_url, subtitle_ext, subtitle_filename,
-             language) in matches:
+        for movie_filename, language, subtitle_filename in matches:
             to_embed.setdefault(movie_filename, []).append((language,
                                                             subtitle_filename))
         to_embed = sorted(to_embed.items())
