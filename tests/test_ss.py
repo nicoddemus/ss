@@ -205,12 +205,13 @@ def test_load_configuration(tmpdir):
             'recursive = yes',
             'skip = on',
             'mkv = 1',
+            'parallel_jobs = 4',
         ]
         f.write('\n'.join(lines))
 
     loaded = ss.load_configuration(str(tmpdir.join('ss.conf')))
     assert loaded == ss.Configuration(['br'], recursive=True, skip=True,
-                                      mkv=True)
+                                      mkv=True, parallel_jobs=4)
 
 
 def test_check_mkv_installed(mock):

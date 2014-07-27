@@ -82,6 +82,9 @@ The following options are available:
   file with embedded video and subtitles. Utility [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
   must be available in the `$PATH` environment variable.
 
+* `parallel_jobs`: number of concurrent threads used to download subtitles.
+  Defaults to `8`.
+
 
 ## Support ##
 

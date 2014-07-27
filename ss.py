@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import guessit
 
+__version__ = '1.4.2'
 
 if sys.version_info[0] == 3: # pragma: no cover
     from urllib.request import urlopen
@@ -197,6 +198,7 @@ def load_configuration(filename):
     read_if_defined('recursive', 'getboolean')
     read_if_defined('skip', 'getboolean')
     read_if_defined('mkv', 'getboolean')
+    read_if_defined('parallel_jobs', 'getint')
 
     if p.has_option('ss', 'languages'):
         value = p.get('ss', 'languages')
@@ -251,25 +253,29 @@ def calculate_hash_for_file(name):
 
 class Configuration(object):
 
-    def __init__(self, languages=('eng',), recursive=False, skip=False, mkv=False):
+    attrs = 'languages recursive skip mkv parallel_jobs'.split()
+
+    def __init__(self, languages=('eng',), recursive=False, skip=False,
+                 mkv=False, parallel_jobs=8):
         self.languages = list(languages)
         self.recursive = recursive
         self.skip = skip
         self.mkv = mkv
+        self.parallel_jobs = parallel_jobs
 
     def __eq__(self, other):
-        return \
-            self.languages == other.languages and \
-            self.recursive == other.recursive and \
-            self.skip == other.skip and \
-            self.mkv == other.mkv
+        for attr in self.attrs:
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
 
     def __ne__(self, other):  # pragma: no cover
         return not self == other
 
     def __repr__(self):  # pragma: no cover
-        return 'Configuration(languages="%s", recursive=%s, skip=%s, mkv=%s)' % \
-               (self.languages, self.recursive, self.skip, self.mkv)
+        pairs = ['{attr}={value}'.format(attr=attr, value=getattr(self, attr))
+                 for attr in self.attrs]
+        return 'Configuration({0})'.format(', '.join(pairs))
 
     def __str__(self):
         values = [
@@ -277,10 +283,10 @@ class Configuration(object):
             'recursive = %s' % self.recursive,
             'skip = %s' % self.skip,
             'mkv = %s' % self.mkv,
+            'parallel_jobs = %d' % self.parallel_jobs,
         ]
         return '\n'.join(values)
 
-__version__ = '1.4.2'
 
 def main(argv=sys.argv, stream=sys.stdout):
     parser = optparse.OptionParser(
@@ -347,7 +353,7 @@ def main(argv=sys.argv, stream=sys.stdout):
     matches = []
     to_query = sorted(to_query)
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=config.parallel_jobs) as executor:
         future_to_movie_and_language = {}
         for movie_filename, language in to_query:
             f = executor.submit(search_and_download, movie_filename,
