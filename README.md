@@ -12,8 +12,8 @@ Command line script for searching video subtitles using
 
 ## Features ##
 
-- **Recursive search**: Automatically search for all videos inside a directory, making it 
-  easy to download subtitles for TV shows packs. 
+- **Recursive search**: Search subtitles for all videos inside a directory (and sub-directories), 
+  making it easy to download subtitles for TV shows packs. 
 - **Multiple languages**: Search for more than one or more subtitle languages.
 - **MKV embedding**: Can automatically create an MKV with the embeded 
   subtitles: a single file contains all subtitles, which is easier to carry around.
