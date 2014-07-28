@@ -44,7 +44,7 @@ move the subtitles to the same folder as the video files.
 
 ### Configuration ###
 
-Configuration is stored in `~/.ss.ini` (`C:\Users\<user>\ss.ini` on Windows in
+Configuration is stored in `~/.ss.ini` (or `C:\Users\<user>\.ss.ini` on Windows) as
 a standard `ini` file:
 
 ```ini
@@ -58,18 +58,19 @@ mkv=no
 The following options are available:
 
 * `languages:` 3 letter codes with the languages to search subtitles for, 
-  separated by commas. Use the same codes as when you change search languages.
-  For a full list, see http://www.opensubtitles.org/addons/export_languages.php.
+  separated by commas. 
+  For a full list of available languages, see 
+  http://www.opensubtitles.org/addons/export_languages.php.
 
 * `recursive`: if directories should be recursively searched for movies (`yes|no`). 
 
 * `skip`: if movies that already have subtitles should be skipped (`yes|no`).
 
-* `mkv`: if True, it will automatically create a [mkv](http://www.matroska.org/)
+* `mkv`: if `yes`, it will automatically create a [mkv](http://www.matroska.org/)
   file with embedded video and subtitles. Utility [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix)
-  must be available in the `$PATH` environment variable.
+  must be available in the `$PATH` environment variable (`yes|no`).
 
-* `parallel_jobs`: number of concurrent threads used to download subtitles.
+* `parallel_jobs`: number of concurrent threads used to download subtitles and create mkv files.
   Defaults to `8`.
 
 
@@ -79,4 +80,7 @@ If you find any issues, please report it in the
 [issues page](https://github.com/nicoddemus/ss/issues).
 
 
+## Changelog ##
+
+See the [releases page](https://github.com/nicoddemus/ss/releases).
 
