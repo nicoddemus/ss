@@ -37,7 +37,7 @@ pip install ss
 
 Pass the name of one or more video files or directories:
 
-![screenshot](images/screenshot.png)
+![screenshot](https://raw.githubusercontent.com/nicoddemus/ss/master/images/screenshot.png)
 
 It will try to find the best match online, and automatically download and 
 move the subtitles to the same folder as the video files.
