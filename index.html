@@ -55,7 +55,7 @@ making it easy to download subtitles for TV shows packs. </li>
 <li>
 <strong>MKV embedding</strong>: Can automatically create an MKV file with embedded 
 subtitles, which is easier to carry around.
-Requires <a href="http://www.bunkus.org/videotools/mkvtoolnix">mkvmerge</a>. </li>
+Requires <a href="http://www.bunkus.org/videotools/mkvtoolnix">mkvmerge</a>.</li>
 </ul><h2>
 <a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h2>
 
@@ -78,7 +78,7 @@ Requires <a href="http://www.bunkus.org/videotools/mkvtoolnix">mkvmerge</a>. </l
 
 <p>Pass the name of one or more video files or directories:</p>
 
-<p><img src="https://github.com/nicoddemus/ss/raw/master/images/screenshot.png" alt="screenshot"></p>
+<p><img src="https://raw.githubusercontent.com/nicoddemus/ss/master/images/screenshot.png" alt="screenshot"></p>
 
 <p>It will try to find the best match online, and automatically download and 
 move the subtitles to the same folder as the video files.</p>
@@ -86,7 +86,7 @@ move the subtitles to the same folder as the video files.</p>
 <h3>
 <a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h3>
 
-<p>Configuration is stored in <code>~/.ss.ini</code> (<code>C:\Users\&lt;user&gt;\ss.ini</code> on Windows in
+<p>Configuration is stored in <code>~/.ss.ini</code> (or <code>C:\Users\&lt;user&gt;\.ss.ini</code> on Windows) as
 a standard <code>ini</code> file:</p>
 
 <div class="highlight highlight-ini"><pre><span class="k">[ss]</span>
@@ -100,20 +100,26 @@ a standard <code>ini</code> file:</p>
 
 <ul>
 <li><p><code>languages:</code> 3 letter codes with the languages to search subtitles for, 
-separated by commas. Use the same codes as when you change search languages.
-For a full list, see <a href="http://www.opensubtitles.org/addons/export_languages.php">http://www.opensubtitles.org/addons/export_languages.php</a>.</p></li>
+separated by commas. 
+For a full list of available languages, see 
+<a href="http://www.opensubtitles.org/addons/export_languages.php">http://www.opensubtitles.org/addons/export_languages.php</a>.</p></li>
 <li><p><code>recursive</code>: if directories should be recursively searched for movies (<code>yes|no</code>). </p></li>
 <li><p><code>skip</code>: if movies that already have subtitles should be skipped (<code>yes|no</code>).</p></li>
-<li><p><code>mkv</code>: if True, it will automatically create a <a href="http://www.matroska.org/">mkv</a>
+<li><p><code>mkv</code>: if <code>yes</code>, it will automatically create a <a href="http://www.matroska.org/">mkv</a>
 file with embedded video and subtitles. Utility <a href="http://www.bunkus.org/videotools/mkvtoolnix">mkvmerge</a>
-must be available in the <code>$PATH</code> environment variable.</p></li>
-<li><p><code>parallel_jobs</code>: number of concurrent threads used to download subtitles.
+must be available in the <code>$PATH</code> environment variable (<code>yes|no</code>).</p></li>
+<li><p><code>parallel_jobs</code>: number of concurrent threads used to download subtitles and create mkv files.
 Defaults to <code>8</code>.</p></li>
 </ul><h2>
 <a name="support" class="anchor" href="#support"><span class="octicon octicon-link"></span></a>Support</h2>
 
 <p>If you find any issues, please report it in the 
 <a href="https://github.com/nicoddemus/ss/issues">issues page</a>.</p>
+
+<h2>
+<a name="changelog" class="anchor" href="#changelog"><span class="octicon octicon-link"></span></a>Changelog</h2>
+
+<p>See the <a href="https://github.com/nicoddemus/ss/releases">releases page</a>.</p>
       </section>
       <footer>
         <p><small>Hosted on <a href="http://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
