@@ -14,9 +14,9 @@ Command line script for searching video subtitles using
 
 - **Recursive search**: Search subtitles for all videos inside a directory (and sub-directories), 
   making it easy to download subtitles for TV shows packs. 
-- **Multiple languages**: Search for more than one or more subtitle languages.
-- **MKV embedding**: Can automatically create an MKV with the embeded 
-  subtitles: a single file contains all subtitles, which is easier to carry around.
+- **Multiple languages**: Search for more than one subtitle languages at the same time.
+- **MKV embedding**: Can automatically create an MKV file with embedded 
+  subtitles, which is easier to carry around.
   Requires [mkvmerge](http://www.bunkus.org/videotools/mkvtoolnix).
 
 ## Install ##
