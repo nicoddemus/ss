@@ -54,11 +54,11 @@ def test_has_subtitles(tmpdir):
     assert ss.has_subtitle(movie_filename, 'eng', multi=True)
 
 
-def test_query_open_subtitles(tmpdir, mock):
+def test_query_open_subtitles(tmpdir, mocker):
     filename = tmpdir.join('Drive (2011) BDRip XviD-COCAIN.avi').ensure()
 
-    rpc_mock = mock.patch('ss.ServerProxy', autospec=True)
-    hash_mock = mock.patch('ss.calculate_hash_for_file', autospec=True)
+    rpc_mock = mocker.patch('ss.ServerProxy', autospec=True)
+    hash_mock = mocker.patch('ss.calculate_hash_for_file', autospec=True)
     hash_mock.return_value = '13ab'
     rpc_mock.return_value = server = MagicMock(name='MockServer')
     server.LogIn.return_value = dict(token='TOKEN')
@@ -133,13 +133,13 @@ def test_obtain_guessit_query():
     }
 
 
-def test_find_best_subtitles_matches(tmpdir, mock):
+def test_find_best_subtitles_matches(tmpdir, mocker):
     movie_filename = str(
         (tmpdir / 'Parks.and.Recreation.S05E13.HDTV.x264-LOL.avi').ensure())
 
     server = MagicMock(name='MockServer')
-    mock.patch('ss.ServerProxy', autospec=True, return_value=server)
-    mock.patch('ss.calculate_hash_for_file', autospec=True, return_value='13ab')
+    mocker.patch('ss.ServerProxy', autospec=True, return_value=server)
+    mocker.patch('ss.calculate_hash_for_file', autospec=True, return_value='13ab')
     server.LogIn.return_value = dict(token='TOKEN')
 
     server.SearchSubtitles.return_value = {
@@ -223,8 +223,8 @@ def test_configuration():
     assert ss.Configuration(parallel_jobs=3) != ss.Configuration()
 
 
-def test_check_mkv_installed(mock):
-    mock.patch('ss.check_output', autospec=True)
+def test_check_mkv_installed(mocker):
+    mocker.patch('ss.check_output', autospec=True)
     assert ss.check_mkv_installed()
     ss.check_output.assert_called_once_with([u'mkvmerge', u'--version'])
 
@@ -245,7 +245,7 @@ def test_script_main():
     assert proc.returncode == 2
 
 
-def test_download_subtitle(tmpdir, mock):
+def test_download_subtitle(tmpdir, mocker):
     url = 'http://server.com/foo.gz'
     subtitle_filename = str(tmpdir / 'subtitle.srt')
 
@@ -257,7 +257,7 @@ def test_download_subtitle(tmpdir, mock):
     with closing(GzipFile(gzip_filename, 'wb')) as f:
         f.write(sub_contents)
 
-    urlopen_mock = mock.patch('ss.urlopen')
+    urlopen_mock = mocker.patch('ss.urlopen')
     urlopen_mock.return_value = open(gzip_filename, 'rb')
     ss.download_subtitle(url, subtitle_filename)
 
@@ -281,14 +281,14 @@ def test_calculate_hash_for_file(tmpdir):
     assert ss.calculate_hash_for_file(filename) == '010101010108b000'
 
 
-def test_embed_mkv(mock):
-    mocked_popen = mock.patch('subprocess.Popen')
+def test_embed_mkv(mocker):
+    mocked_popen = mocker.patch('subprocess.Popen')
     mocked_popen.return_value = popen = MagicMock()
     popen.communicate.return_value = ('', '')
     popen.poll.return_value = 0
 
     subtitles = [('eng', u'foo.eng.srt'), ('pob', u'foo.pob.srt')]
-    mocked_convert = mock.patch('ss.convert_language_code_to_iso639_2',
+    mocked_convert = mocker.patch('ss.convert_language_code_to_iso639_2',
                side_effect=['eng', 'por', 'eng'])
     assert ss.embed_mkv(u'foo.avi', subtitles) == (True, '')
     mocked_convert.assert_has_calls([call('eng'), call('pob')])
@@ -455,16 +455,16 @@ def test_no_input_files(runner, tmpdir):
 
 
 @pytest.fixture
-def runner(tmpdir, mock):
-    r = _Runner(tmpdir, mock)
+def runner(tmpdir, mocker):
+    r = _Runner(tmpdir, mocker)
     r.start()
     return r
 
 
 class _Runner(object):
-    def __init__(self, tmpdir, mock):
+    def __init__(self, tmpdir, mocker):
         self._tmpdir = tmpdir
-        self._mock = mock
+        self._mocker = mocker
         self._movies = set()
         self._subtitles = {}  # movie name to set of subtitle langues
         self.configuration = ss.Configuration(mkv=False)
@@ -488,7 +488,7 @@ class _Runner(object):
 
 
     def start(self):
-        p = self._mock.patch
+        p = self._mocker.patch
         p('ss.query_open_subtitles', side_effect=self._mock_query)
         p('ss.download_subtitle', side_effect=self._mock_download)
         p('ss.load_configuration', return_value=self.configuration)
