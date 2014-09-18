@@ -228,8 +228,11 @@ def test_check_mkv_installed(mocker):
     assert ss.check_mkv_installed()
     ss.check_output.assert_called_once_with([u'mkvmerge', u'--version'])
 
-    ss.check_output.side_effect = subprocess.CalledProcessError(256,
-                                                                'unused')
+    def raise_error(*args):
+        raise subprocess.CalledProcessError(256, 'unused')
+
+    ss.check_output.side_effect = raise_error
+
     assert not ss.check_mkv_installed()
 
 
