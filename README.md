@@ -5,8 +5,9 @@ Command line script for searching video subtitles using
 
 ![OpenSubtitles.org](http://static.opensubtitles.org/gfx/logo-transparent.png)
 
-[![version](http://img.shields.io/pypi/v/ss.svg)](https://crate.io/packages/ss)
-[![downloads](http://img.shields.io/pypi/dm/ss.svg)](https://crate.io/packages/ss/)
+[![py_versions](https://pypip.in/py_versions/ss/badge.png)](https://pypi.python.org/pypi/ss/)
+[![version](http://img.shields.io/pypi/v/ss.svg)](https://pypi.python.org/pypi/ss/)
+[![downloads](http://img.shields.io/pypi/dm/ss.svg)](https://pypi.python.org/pypi/ss/)
 [![ci](http://img.shields.io/travis/nicoddemus/ss.svg)](https://travis-ci.org/nicoddemus/ss)
 [![coverage](http://img.shields.io/coveralls/nicoddemus/ss.svg)](https://coveralls.io/r/nicoddemus/ss)
 
