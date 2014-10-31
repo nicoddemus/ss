@@ -80,7 +80,7 @@ def filter_bad_results(search_results, guessit_query):
 def query_open_subtitles(movie_filename, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = ServerProxy(uri, verbose=0, allow_none=True, use_datetime=True)
-    login_info = server.LogIn('', '', 'en', 'OS Test User Agent')
+    login_info = server.LogIn('', '', 'en', 'ss')
     token = login_info['token']
 
     try:
@@ -91,7 +91,10 @@ def query_open_subtitles(movie_filename, language):
         ]
 
         response = server.SearchSubtitles(token, search_queries)
-        search_results = response['data']
+        try:
+            search_results = response['data']
+        except KeyError as e:
+            raise KeyError('"data" key not found in response: %r' % response)
 
         if search_results:
             search_results = filter_bad_results(search_results, guessit_query)
