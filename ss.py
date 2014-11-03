@@ -18,7 +18,7 @@ import guessit
 init(autoreset=True)
 
 
-__version__ = '1.5.0'
+__version__ = '1.5.2'
 
 if sys.version_info[0] == 3: # pragma: no cover
     from urllib.request import urlopen
