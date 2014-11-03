@@ -80,7 +80,7 @@ def filter_bad_results(search_results, guessit_query):
 def query_open_subtitles(movie_filename, language):
     uri = 'http://api.opensubtitles.org/xml-rpc'
     server = ServerProxy(uri, verbose=0, allow_none=True, use_datetime=True)
-    login_info = server.LogIn('', '', 'en', 'ss')
+    login_info = server.LogIn('', '', 'en', 'ss v' + __version__)
     token = login_info['token']
 
     try:

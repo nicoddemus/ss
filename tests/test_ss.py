@@ -69,7 +69,7 @@ def test_query_open_subtitles(tmpdir, mocker):
     rpc_mock.assert_called_once_with(
         'http://api.opensubtitles.org/xml-rpc', use_datetime=True,
         allow_none=True, verbose=0)
-    server.LogIn.assert_called_once_with('', '', 'en', 'ss')
+    server.LogIn.assert_called_once_with('', '', 'en', 'ss v' + ss.__version__)
     expected_calls = [
         call('TOKEN',
              [dict(query=u'"Drive" "2011"', sublanguageid='eng'),
