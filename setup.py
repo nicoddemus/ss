@@ -1,24 +1,21 @@
-import sys
-
 from setuptools import setup
 
 
-description = "Command line script that automatically searches for video subtitles using OpenSubtitles.org APIs."
+description = "Command line script that automatically searches for video " \
+              "subtitles using OpenSubtitles.org APIs."
 long_description = ''
-
-dependencies = ['guessit>=2', 'colorama']
-if sys.version_info <= (3, 1):
-    dependencies.append('futures')
 
 setup(
     name="ss",
-    version="1.5.2",
+    version="1.6.0",
     packages=[],
     scripts=['ss.py'],
     py_modules=['ss'],
-    install_requires=dependencies,
+    install_requires=['guessit>=2', 'colorama'],
     entry_points={'console_scripts': ['ss = ss:main']},
-
+    extras_require={
+        ':python_version=="2.7"': ['futures'],
+    },
     # metadata for upload to PyPI
     author="nicoddemus@gmail.com",
     author_email="nicoddemus@gmail.com",
@@ -36,9 +33,8 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
-
+        'Programming Language :: Python :: 3.5',
     ]
 )
