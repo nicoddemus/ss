@@ -301,8 +301,8 @@ def test_embed_mkv(mocker):
     mocked_popen.assert_called_once_with(params, shell=True,
                                          stderr=subprocess.STDOUT,
                                          stdout=subprocess.PIPE)
-    popen.communicate.assert_called_once()
-    popen.poll.assert_called_once()
+    popen.communicate.assert_called_once_with()
+    popen.poll.assert_called_once_with()
 
     popen.communicate.return_value = ('failed error', '')
     popen.poll.return_value = 2

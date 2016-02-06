@@ -31,7 +31,7 @@ else:  # pragma: no cover
 
 
 def obtain_guessit_query(movie_filename, language):
-    guess = guessit.guess_file_info(os.path.basename(movie_filename), info=['filename'])
+    guess = guessit.guessit(os.path.basename(movie_filename))
 
     def extract_query(guess, parts):
         result = ['"%s"' % guess.get(k) for k in parts if guess.get(k)]
@@ -39,11 +39,11 @@ def obtain_guessit_query(movie_filename, language):
 
     result = {}
     if guess.get('type') == 'episode':
-        result['query'] = extract_query(guess, ['series', 'title', 'releaseGroup'])
+        result['query'] = extract_query(guess, ['title', 'episode_title', 'release_group'])
         if 'season' in guess:
             result['season'] = guess['season']
-        if 'episodeNumber' in guess:
-            result['episode'] = guess['episodeNumber']
+        if 'episode' in guess:
+            result['episode'] = guess['episode']
 
     elif guess.get('type') == 'movie':
         result['query'] = extract_query(guess, ['title', 'year'])
