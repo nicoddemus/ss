@@ -1,23 +1,21 @@
 from __future__ import with_statement
-from contextlib import closing
-from gzip import GzipFile
+
 import os
 import re
-import sys
-
 import subprocess
+import sys
+from contextlib import closing
+from gzip import GzipFile
 
+import pytest
+import ss
 
 if sys.version_info[0] == 3:
     from io import StringIO
+    from unittest.mock import MagicMock, call
 else:
     from StringIO import StringIO
-
-import pytest
-
-from mock import MagicMock, call, DEFAULT
-
-import ss
+    from mock import MagicMock, call
 
 
 def test_find_movie_files(tmpdir):

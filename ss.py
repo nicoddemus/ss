@@ -93,7 +93,7 @@ def query_open_subtitles(movie_filename, language):
         response = server.SearchSubtitles(token, search_queries)
         try:
             search_results = response['data']
-        except KeyError as e:
+        except KeyError:  # noqa
             raise KeyError('"data" key not found in response: %r' % response)
 
         if search_results:

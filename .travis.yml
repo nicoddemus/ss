@@ -1,17 +1,13 @@
 language: python
 
 python:
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "pypy"
+  - "3.5"
 
 install:
-  - pip install coveralls pytest-mock --use-wheel
+  - pip install coveralls tox
 
 script:
-  - python setup.py develop
-  - coverage run --source=ss.py runtests.py
+  - coverage run --source=ss.py -m tox
 
 after_success:
  - coveralls
