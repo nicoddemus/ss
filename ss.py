@@ -378,13 +378,17 @@ def main(argv=sys.argv, stream=sys.stdout):
 
         for future in as_completed(future_to_movie_and_language):
             movie_filename, language = future_to_movie_and_language[future]
-            subtitle_filename = future.result()
+            exception = future.exception()
+            if exception is None:
+                subtitle_filename = future.result()
 
-            if subtitle_filename:
-                status = Fore.GREEN + '[OK]'
-                matches.append((movie_filename, language, subtitle_filename))
+                if subtitle_filename:
+                    status = Fore.GREEN + '[OK]'
+                    matches.append((movie_filename, language, subtitle_filename))
+                else:
+                    status = Fore.RED + '[Not found]'
             else:
-                status = Fore.RED + '[Not found]'
+                status = Fore.RED + '[ERROR]: {}'.format(str(exception))
 
             name = os.path.basename(movie_filename)
             print_status(
